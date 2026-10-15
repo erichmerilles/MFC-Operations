@@ -845,69 +845,768 @@ body {
         gap: 14px
     }
 }
+
 /* Shared accessibility and responsive refinements */
-html { font-size: 16px; }
-body { font-size: 15px; line-height: 1.5; }
-.app-nav .nav-link { min-height: 46px; font-size: 14px; }
-.nav-icon { width: 20px; font-size: 16px; }
-.form-label { font-size: 13px; }
-.form-control, .form-select { min-height: 42px; font-size: 14px; }
-.table thead th { font-size: 11px; }
-.table tbody td { font-size: 13px; }
-.btn { min-height: 40px; font-size: 13px; }
-a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid rgba(37,99,235,.45); outline-offset: 2px; }
-.skip-link { position:fixed; top:8px; left:8px; z-index:20; padding:10px 14px; background:#fff; color:var(--navy); border-radius:8px; transform:translateY(-150%); }
-.skip-link:focus { transform:translateY(0); }
-.topbar-heading { display:flex; align-items:center; gap:12px; }
-.main-content { min-width:0; }
-.mobile-nav-toggle { display:none; width:42px; height:42px; border:1px solid var(--line); border-radius:9px; background:#fff; color:var(--navy); font-size:22px; }
-.sidebar-backdrop { display:none; }
-.panel-header { flex-wrap:wrap; }
-.panel-header > form { min-width:min(100%, 320px); }
-.table-responsive { -webkit-overflow-scrolling:touch; }
-.table-responsive:focus-visible { outline:3px solid rgba(37,99,235,.35); outline-offset:2px; }
-.setting-row { flex-wrap:wrap; }
-.page-intro p { font-size:13px; }
-.panel-header p, .form-text, .setting-row p, .quick-action small, .record-sub, .stat-note, .table-pagination-summary { color:#59697e; font-size:12px; }
-.status-pill { font-size:11px; }
+html {
+    font-size: 16px;
+}
+
+body {
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.app-nav .nav-link {
+    min-height: 46px;
+    font-size: 14px;
+}
+
+.nav-icon {
+    width: 20px;
+    font-size: 16px;
+}
+
+.form-label {
+    font-size: 13px;
+}
+
+.form-control,
+.form-select {
+    min-height: 42px;
+    font-size: 14px;
+}
+
+.table thead th {
+    font-size: 11px;
+}
+
+.table tbody td {
+    font-size: 13px;
+}
+
+.btn {
+    min-height: 40px;
+    font-size: 13px;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .45);
+    outline-offset: 2px;
+}
+
+.skip-link {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    z-index: 20;
+    padding: 10px 14px;
+    background: #fff;
+    color: var(--navy);
+    border-radius: 8px;
+    transform: translateY(-150%);
+}
+
+.skip-link:focus {
+    transform: translateY(0);
+}
+
+.topbar-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.main-content {
+    min-width: 0;
+}
+
+.mobile-nav-toggle {
+    display: none;
+    width: 42px;
+    height: 42px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: #fff;
+    color: var(--navy);
+    font-size: 22px;
+}
+
+.sidebar-backdrop {
+    display: none;
+}
+
+.panel-header {
+    flex-wrap: wrap;
+}
+
+.panel-header>form {
+    min-width: min(100%, 320px);
+}
+
+.table-responsive {
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-responsive:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .35);
+    outline-offset: 2px;
+}
+
+.setting-row {
+    flex-wrap: wrap;
+}
+
+.admin-list-edit {
+    align-items: center;
+    gap: 9px;
+}
+
+.admin-list-edit .form-control {
+    flex: 1 1 150px;
+    min-width: 120px;
+}
+
+.admin-list-edit .form-select {
+    flex: 0 1 125px;
+    min-width: 110px;
+}
+
+.admin-list-edit .btn {
+    flex: 0 0 auto;
+}
+
+.admin-list-panel-body {
+    max-height: min(60vh, 560px);
+    overflow-y: auto;
+}
+
+.table .table-input {
+    min-width: 110px;
+}
+
+.table .table-input.description {
+    min-width: 180px;
+}
+
+.table .table-input.site {
+    min-width: 140px;
+}
+
+.page-intro p {
+    font-size: 13px;
+}
+
+.panel-header p,
+.form-text,
+.setting-row p,
+.quick-action small,
+.record-sub,
+.stat-note,
+.table-pagination-summary {
+    color: #59697e;
+    font-size: 12px;
+}
+
+.status-pill {
+    font-size: 11px;
+}
+
 @media(max-width:760px) {
-    .sidebar { position:fixed; inset:0 auto 0 0; z-index:5; width:min(290px,86vw); min-height:100vh; padding:18px 15px; transform:translateX(-105%); transition:transform .2s ease; overflow-y:auto; box-shadow:0 12px 35px rgba(15,23,42,.25); }
-    .sidebar.is-open { transform:translateX(0); }
-    .sidebar .nav-label { display:block; }
-    .sidebar .app-nav { display:flex; }
-    .sidebar-bottom { display:grid; }
-    .sidebar-backdrop.is-visible { display:block; position:fixed; inset:0; z-index:4; border:0; background:rgba(15,23,42,.42); }
-    .mobile-nav-toggle { display:grid; place-items:center; flex:0 0 auto; }
-    .topbar { justify-content:flex-start; }
-    .topbar-right { margin-left:auto; }
-    .topbar-right .user-copy { display:flex; }
-    .topbar-right .user-copy strong { display:none; }
-    .topbar-right .user-copy small { font-size:11px; }
-    .page-content { padding:18px 16px 28px; }
-    .page-intro .toolbar { width:100%; }
-    .page-intro .toolbar .btn { flex:1 1 auto; }
-    .card-grid { gap:10px; }
-    .stat-top { gap:5px; font-size:12px; }
-    .stat-note { font-size:11px; }
-    .table-pagination { align-items:flex-start; flex-direction:column; }
-    .table-pagination-controls { flex-wrap:wrap; }
+    .sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        z-index: 5;
+        width: min(290px, 86vw);
+        min-height: 100vh;
+        padding: 18px 15px;
+        transform: translateX(-105%);
+        transition: transform .2s ease;
+        overflow-y: auto;
+        box-shadow: 0 12px 35px rgba(15, 23, 42, .25);
+    }
+
+    .sidebar.is-open {
+        transform: translateX(0);
+    }
+
+    .sidebar .nav-label {
+        display: block;
+    }
+
+    .sidebar .app-nav {
+        display: flex;
+    }
+
+    .sidebar-bottom {
+        display: grid;
+    }
+
+    .sidebar-backdrop.is-visible {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 4;
+        border: 0;
+        background: rgba(15, 23, 42, .42);
+    }
+
+    .mobile-nav-toggle {
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+    }
+
+    .topbar {
+        justify-content: flex-start;
+    }
+
+    .topbar-right {
+        margin-left: auto;
+    }
+
+    .topbar-right .user-copy {
+        display: flex;
+    }
+
+    .topbar-right .user-copy strong {
+        display: none;
+    }
+
+    .topbar-right .user-copy small {
+        font-size: 11px;
+    }
+
+    .page-content {
+        padding: 18px 16px 28px;
+    }
+
+    .page-intro .toolbar {
+        width: 100%;
+    }
+
+    .page-intro .toolbar .btn {
+        flex: 1 1 auto;
+    }
+
+    .card-grid {
+        gap: 10px;
+    }
+
+    .stat-top {
+        gap: 5px;
+        font-size: 12px;
+    }
+
+    .stat-note {
+        font-size: 11px;
+    }
+
+    .table-pagination {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .table-pagination-controls {
+        flex-wrap: wrap;
+    }
 }
+
 @media(max-width:480px) {
-    .card-grid { grid-template-columns:1fr 1fr; }
-    .stat-card { min-width:0; padding:12px; }
-    .stat-value { font-size:22px; }
-    .topbar h1 { font-size:18px; }
-    .toolbar .form-control { max-width:none; width:100%; }
-    .panel-header > form { width:100%; }
-    .panel-header > form .form-control { flex:1 1 100%; }
-    .table-pagination-controls .btn { padding:8px 10px; }
+    .card-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .stat-card {
+        min-width: 0;
+        padding: 12px;
+    }
+
+    .stat-value {
+        font-size: 22px;
+    }
+
+    .topbar h1 {
+        font-size: 18px;
+    }
+
+    .toolbar .form-control {
+        max-width: none;
+        width: 100%;
+    }
+
+    .panel-header>form {
+        width: 100%;
+    }
+
+    .panel-header>form .form-control {
+        flex: 1 1 100%;
+    }
+
+    .table-pagination-controls .btn {
+        padding: 8px 10px;
+    }
 }
+
 @media(max-width:360px) {
-    .card-grid { grid-template-columns:1fr; }
+    .card-grid {
+        grid-template-columns: 1fr;
+    }
 }
+
 @media(prefers-reduced-motion:reduce) {
-    *, *::before, *::after { scroll-behavior:auto !important; transition-duration:.01ms !important; animation-duration:.01ms !important; }
+
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+    }
 }
 
 
 
+/* =========================================================
+   MFC OPERATIONS - BUTTON PLACEMENT REFINEMENTS
+   Keeps the existing design and color scheme
+   ========================================================= */
+
+/* Page heading and primary actions */
+.page-intro {
+    align-items: center;
+    gap: 16px;
+}
+
+.page-intro>.toolbar {
+    justify-content: flex-end;
+    flex-shrink: 0;
+}
+
+/* Consistent spacing between toolbar buttons */
+.toolbar {
+    gap: 8px;
+}
+
+/* Search controls stay aligned together */
+.panel-header>form.toolbar {
+    justify-content: flex-end;
+    align-items: center;
+}
+
+/* Keep the search field a predictable width */
+.panel-header>form.toolbar .form-control {
+    width: 270px;
+    max-width: 100%;
+}
+
+/* Table row actions */
+.table td .row-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 190px;
+}
+
+.table td .row-actions .btn {
+    margin: 0;
+    white-space: nowrap;
+}
+
+/* Do not allow table content to force the page wider */
+.main-content {
+    min-width: 0;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+/* Smaller screens */
+@media (max-width: 760px) {
+    .page-intro {
+        align-items: stretch;
+    }
+
+    .page-intro>.toolbar {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .panel-header>form.toolbar {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .panel-header>form.toolbar .form-control {
+        width: auto;
+        flex: 1 1 200px;
+    }
+
+    .table td .row-actions {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-intro>.toolbar .btn {
+        flex: 1 1 auto;
+    }
+
+    .panel-header>form.toolbar .form-control {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+}
+
+
+/* =========================================
+   COMPACT TABLE ROWS
+   Reduce wasted vertical space
+   ========================================= */
+
+/* Reduce table cell padding */
+.table thead th {
+    padding: 8px 12px;
+    line-height: 1.5;
+    vertical-align: middle;
+}
+
+.table tbody td {
+    padding: 5px 12px;
+    line-height: 1.5;
+    vertical-align: middle;
+}
+
+/* Make inputs and dropdowns inside tables more compact */
+.table .form-control,
+.table .form-select,
+.table .table-input {
+    min-height: 30px;
+    height: 30px;
+    padding: 4px 8px;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* Compact action buttons inside table rows */
+.table tbody td .btn {
+    min-height: 28px;
+    padding: 4px 8px;
+    line-height: 1.5;
+}
+
+/* Keep icons and text vertically aligned */
+.table tbody td .status-pill {
+    line-height: 1.5;
+}
+
+/* Avoid extra space around the table */
+.table {
+    margin-bottom: 0;
+}
+
+/* =========================================================
+   WITHDRAWAL FORM ENHANCEMENTS
+   ========================================================= */
+
+.withdrawal-page-intro {
+    gap: 16px;
+    align-items: center;
+}
+
+.withdrawal-page-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.withdrawal-form .withdrawal-panel+.withdrawal-panel {
+    margin-top: 18px;
+}
+
+.withdrawal-form .panel-header {
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.withdrawal-form .panel-header p {
+    margin-bottom: 0;
+}
+
+.withdrawal-form .form-label {
+    margin-bottom: 5px;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.withdrawal-form .form-text {
+    margin-top: 4px;
+    font-size: 0.72rem;
+}
+
+.withdrawal-form .withdrawal-number {
+    background: #f8fafc;
+    font-weight: 600;
+    color: var(--navy);
+}
+
+/* Item table header controls */
+
+.withdrawal-items-header {
+    justify-content: space-between;
+}
+
+.withdrawal-item-tools {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.withdrawal-item-counter {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 9px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #f8fafc;
+    color: var(--muted);
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+/* Compact, scrollable item table */
+
+.withdrawal-table-wrap {
+    max-height: min(58vh, 560px);
+    overflow: auto;
+    border-bottom: 1px solid var(--line);
+}
+
+.withdrawal-form .withdrawal-items-table {
+    width: 100%;
+    min-width: 850px;
+    margin-bottom: 0;
+    table-layout: fixed;
+}
+
+.withdrawal-form .withdrawal-items-table th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding: 8px 10px;
+    background: #f8fafc;
+    line-height: 1.2;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.withdrawal-form .withdrawal-items-table td {
+    padding: 5px 8px;
+    vertical-align: middle;
+    line-height: 1.2;
+}
+
+.withdrawal-items-table .withdrawal-line-column {
+    width: 58px;
+    text-align: center;
+}
+
+.withdrawal-items-table .withdrawal-product-column {
+    width: 38%;
+}
+
+.withdrawal-items-table .withdrawal-quantity-column {
+    width: 135px;
+}
+
+.withdrawal-items-table .withdrawal-remove-column {
+    width: 68px;
+}
+
+.withdrawal-form .withdrawal-items-table .table-input {
+    width: 100%;
+    height: 32px;
+    min-height: 32px;
+    padding: 4px 8px;
+    font-size: 0.82rem;
+    line-height: 1.2;
+}
+
+.withdrawal-form .withdrawal-items-table .line-no {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.withdrawal-form .withdrawal-items-table .remove-line {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 28px;
+    min-height: 28px;
+    padding: 3px;
+}
+
+.withdrawal-form .withdrawal-items-table .remove-line i {
+    font-size: 0.85rem;
+}
+
+.withdrawal-form #addLine {
+    min-height: 32px;
+    padding: 5px 10px;
+}
+
+.withdrawal-form #addLine:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+/* Table footer */
+
+.withdrawal-table-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--line);
+    background: #fafbfd;
+}
+
+.withdrawal-table-footer .text-small {
+    font-size: 0.74rem;
+}
+
+/* Internal note */
+
+.withdrawal-form .withdrawal-note {
+    padding-top: 14px;
+}
+
+.withdrawal-form .withdrawal-note textarea {
+    min-height: 58px;
+    resize: vertical;
+}
+
+/* Bottom action bar */
+
+.withdrawal-form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+    padding: 12px 0;
+    border-top: 1px solid var(--line);
+}
+
+.withdrawal-save-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    max-width: 440px;
+    font-size: 0.78rem;
+}
+
+.withdrawal-action-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Smaller screens */
+
+@media (max-width: 767.98px) {
+    .withdrawal-page-intro {
+        align-items: flex-start;
+    }
+
+    .withdrawal-page-toolbar {
+        width: 100%;
+    }
+
+    .withdrawal-items-header {
+        align-items: flex-start;
+    }
+
+    .withdrawal-item-tools {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .withdrawal-table-wrap {
+        max-height: 60vh;
+    }
+
+    .withdrawal-form-actions {
+        align-items: stretch;
+    }
+
+    .withdrawal-save-hint {
+        max-width: none;
+    }
+
+    .withdrawal-action-buttons {
+        width: 100%;
+    }
+
+    .withdrawal-action-buttons .btn {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+}
+
+/* Printing this page directly */
+
+@media print {
+
+    .withdrawal-page-toolbar,
+    .withdrawal-form-actions,
+    .withdrawal-item-tools,
+    .withdrawal-table-footer,
+    .withdrawal-form .remove-line {
+        display: none !important;
+    }
+
+    .withdrawal-table-wrap {
+        max-height: none;
+        overflow: visible;
+    }
+
+    .withdrawal-form .withdrawal-items-table {
+        min-width: 0;
+    }
+
+    .withdrawal-form .withdrawal-items-table th {
+        position: static;
+    }
+}
+
+/* Admin master data editing controls */
+.admin-edit-table .form-control,
+.admin-edit-table .form-select {
+    min-height: 40px;
+    height: auto;
+    font-size: 13px;
+}
+.admin-list-edit .form-control,
+.admin-list-edit .form-select {
+    min-height: 40px;
+    height: auto;
+    font-size: 14px;
+}

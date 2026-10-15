@@ -42,12 +42,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const pageSize = 10; let page = 0; const nav = document.createElement('nav'); nav.className = 'table-pagination'; nav.setAttribute('aria-label', 'Table pagination');
         const summary = document.createElement('span'); summary.className = 'table-pagination-summary'; summary.setAttribute('aria-live', 'polite');
         const controls = document.createElement('div'); controls.className = 'table-pagination-controls';
-        const buttons = [{label:'First',delta:-Infinity},{label:'Previous',delta:-1},{label:'Next',delta:1},{label:'Last',delta:Infinity}].map(item => {
+        const buttons = [{ label: 'First', delta: -Infinity }, { label: 'Previous', delta: -1 }, { label: 'Next', delta: 1 }, { label: 'Last', delta: Infinity }].map(item => {
             const button = document.createElement('button'); button.type = 'button'; button.className = 'btn btn-light btn-sm'; button.textContent = item.label;
-            button.addEventListener('click', function () { const count = Math.ceil(rows.length/pageSize); page = item.delta === -Infinity ? 0 : item.delta === Infinity ? count-1 : Math.max(0,Math.min(page+item.delta,count-1)); render(); }); controls.appendChild(button); return button;
+            button.addEventListener('click', function () { const count = Math.ceil(rows.length / pageSize); page = item.delta === -Infinity ? 0 : item.delta === Infinity ? count - 1 : Math.max(0, Math.min(page + item.delta, count - 1)); render(); }); controls.appendChild(button); return button;
         });
-        nav.append(summary, controls); const container = table.closest('.table-responsive'); (container || table).insertAdjacentElement('afterend',nav);
-        function render() { const count=Math.ceil(rows.length/pageSize), start=page*pageSize; rows.forEach((row,index)=>row.hidden=index<start||index>=start+pageSize); summary.textContent='Showing '+(start+1)+'–'+Math.min(start+pageSize,rows.length)+' of '+rows.length; buttons[0].disabled=buttons[1].disabled=page===0; buttons[2].disabled=buttons[3].disabled=page===count-1; }
+        nav.append(summary, controls); const container = table.closest('.table-responsive'); (container || table).insertAdjacentElement('afterend', nav);
+        function render() { const count = Math.ceil(rows.length / pageSize), start = page * pageSize; rows.forEach((row, index) => row.hidden = index < start || index >= start + pageSize); summary.textContent = 'Showing ' + (start + 1) + '–' + Math.min(start + pageSize, rows.length) + ' of ' + rows.length; buttons[0].disabled = buttons[1].disabled = page === 0; buttons[2].disabled = buttons[3].disabled = page === count - 1; }
         render();
     });
 });
