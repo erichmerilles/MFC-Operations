@@ -648,7 +648,7 @@ $itemCount = count($items);
                         <td class="product-cell">
                             <?php if ($item !== null): ?>
 
-                                <?= e($item['product_name'] ?? '') ?>
+                                <?= e($item['ht_description'] ?: ($item['product_name'] ?? '')) ?>
 
                             <?php elseif ($isMarker): ?>
 

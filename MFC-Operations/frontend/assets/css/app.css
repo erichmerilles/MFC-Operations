@@ -1168,11 +1168,319 @@ textarea:focus-visible {
     }
 }
 
+/* Products & Sites master-data workspace */
+.catalog-intro {
+    margin-bottom: 18px;
+}
+
+.catalog-intro h2 {
+    margin-bottom: 4px;
+}
+
+.catalog-intro p {
+    margin: 0;
+    color: var(--muted);
+}
+
+.catalog-panel {
+    overflow: hidden;
+}
+
+.catalog-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px 11px;
+}
+
+.catalog-heading h3 {
+    margin: 0;
+    color: var(--navy);
+    font-size: 14px;
+    font-weight: 750;
+}
+
+.catalog-heading p {
+    margin: 4px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.catalog-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px 20px 14px;
+    flex-wrap: wrap;
+}
+
+.catalog-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 420px;
+    min-width: min(100%, 280px);
+}
+
+.catalog-search>i {
+    color: var(--muted);
+    margin-left: 2px;
+}
+
+.catalog-search .form-control {
+    min-width: 100px;
+}
+
+.catalog-filter {
+    width: auto;
+    min-width: 145px;
+}
+
+.catalog-clear {
+    border: 1px solid var(--line);
+}
+
+.catalog-table-wrap {
+    border-top: 1px solid var(--line);
+}
+
+.catalog-table {
+    min-width: 1080px;
+}
+
+.catalog-table thead th {
+    padding: 11px 13px;
+    border-left: 0;
+    border-right: 0;
+}
+
+.catalog-table tbody td,
+.catalog-sites-table tbody td {
+    padding: 9px 13px;
+    border-bottom-color: #edf0f5;
+    vertical-align: middle;
+}
+
+.catalog-table tbody tr:last-child td,
+.catalog-sites-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.catalog-name {
+    color: var(--navy);
+    font-weight: 650;
+    min-width: 150px;
+}
+
+.catalog-code {
+    color: #263c5b;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.catalog-description {
+    display: block;
+    max-width: 185px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.catalog-number {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.catalog-missing,
+.catalog-missing-note {
+    display: inline-block;
+    margin-left: 5px;
+    color: #8a5b06;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 650;
+}
+
+.catalog-missing-note {
+    display: block;
+    margin: 3px 0 0;
+}
+
+.catalog-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 190px;
+}
+
+.catalog-actions form {
+    margin: 0;
+}
+
+.catalog-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 6px 9px;
+}
+
+.catalog-delete {
+    color: #8b4545;
+}
+
+.catalog-delete-note {
+    color: #617086;
+    font-size: 10px;
+    line-height: 1.25;
+    max-width: 140px;
+}
+
+.catalog-sites-table {
+    min-width: 450px;
+}
+
+.catalog-sites-table thead th {
+    padding: 11px 13px;
+}
+
+.catalog-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 16px;
+    color: var(--muted);
+    text-align: center;
+}
+
+.catalog-empty strong {
+    margin-bottom: 3px;
+    color: var(--navy);
+}
+
+.catalog-modal {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+}
+
+.catalog-modal .modal-header,
+.catalog-modal .modal-footer {
+    padding: 16px 20px;
+    border-color: var(--line);
+}
+
+.catalog-modal .modal-title {
+    color: var(--navy);
+    font-size: 16px;
+    font-weight: 750;
+}
+
+.catalog-modal .modal-header p {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.catalog-modal .modal-body {
+    padding: 20px;
+}
+
+.catalog-modal .form-label {
+    margin-bottom: 5px;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.catalog-fieldset {
+    margin-bottom: 20px;
+}
+
+.catalog-fieldset legend {
+    float: none;
+    width: auto;
+    margin-bottom: 11px;
+    color: #43556e;
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.catalog-client-add {
+    padding: 0 20px 14px;
+}
+
+.catalog-client-add .form-control {
+    max-width: 420px;
+}
+
+.catalog-panel .table-pagination {
+    padding: 9px 18px;
+}
+
+@media(max-width:760px) {
+
+    .catalog-intro,
+    .catalog-heading,
+    .catalog-toolbar {
+        align-items: stretch;
+    }
+
+    .catalog-intro {
+        flex-direction: column;
+    }
+
+    .catalog-intro>.btn {
+        align-self: flex-start;
+    }
+
+    .catalog-heading-sites {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .catalog-toolbar {
+        padding-right: 14px;
+        padding-left: 14px;
+    }
+
+    .catalog-search {
+        flex-basis: 100%;
+        min-width: 0;
+    }
+
+    .catalog-search .btn {
+        padding-right: 9px;
+        padding-left: 9px;
+    }
+
+    .catalog-filter {
+        flex: 1 1 130px;
+        min-width: 0;
+    }
+
+    .catalog-clear {
+        flex: 0 0 auto;
+    }
+
+    .catalog-heading {
+        padding: 14px;
+    }
+
+    .catalog-modal .modal-body {
+        padding: 16px;
+    }
+}
+
 
 
 /* =========================================================
    MFC OPERATIONS - BUTTON PLACEMENT REFINEMENTS
-   Keeps the existing design and color scheme
    ========================================================= */
 
 /* Page heading and primary actions */
@@ -1604,6 +1912,7 @@ textarea:focus-visible {
     height: auto;
     font-size: 13px;
 }
+
 .admin-list-edit .form-control,
 .admin-list-edit .form-select {
     min-height: 40px;

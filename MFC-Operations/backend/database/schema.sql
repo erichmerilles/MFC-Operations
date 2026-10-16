@@ -7,11 +7,19 @@ CREATE TABLE IF NOT EXISTS employees (
 ) ENGINE=InnoDB;
 CREATE TABLE IF NOT EXISTS clients (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, client_name VARCHAR(180) NOT NULL UNIQUE, qb_list_id VARCHAR(100) NULL, active TINYINT(1) NOT NULL DEFAULT 1, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB;
 CREATE TABLE IF NOT EXISTS sites (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, site_name VARCHAR(120) NOT NULL UNIQUE, active TINYINT(1) NOT NULL DEFAULT 1) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS employee_permissions (
+ employee_id BIGINT UNSIGNED NOT NULL, permission_code VARCHAR(80) NOT NULL, granted_by BIGINT UNSIGNED NULL,
+ granted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(employee_id,permission_code),
+ CONSTRAINT fk_ep_employee FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+ CONSTRAINT fk_ep_granted_by FOREIGN KEY(granted_by) REFERENCES employees(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
 CREATE TABLE IF NOT EXISTS products (
- id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, product_name VARCHAR(255) NOT NULL UNIQUE, item_code VARCHAR(100) NULL, description VARCHAR(255) NULL, u_m VARCHAR(40) NULL,
- default_site_id BIGINT UNSIGNED NULL, default_price DECIMAL(12,2) NULL, kg_per_box DECIMAL(12,3) NULL, qb_list_id VARCHAR(100) NULL, active TINYINT(1) NOT NULL DEFAULT 1,
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, product_name VARCHAR(255) NOT NULL UNIQUE,
+ ht_code VARCHAR(100) NULL, qb_code VARCHAR(100) NULL, ht_description VARCHAR(255) NULL, qb_description VARCHAR(255) NULL,
+ item_code VARCHAR(100) NULL, description VARCHAR(255) NULL, u_m VARCHAR(40) NULL,
+ default_price DECIMAL(12,2) NULL, kg_per_box DECIMAL(12,3) NULL, qb_list_id VARCHAR(100) NULL, active TINYINT(1) NOT NULL DEFAULT 1,
  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
- CONSTRAINT fk_products_site FOREIGN KEY(default_site_id) REFERENCES sites(id) ON DELETE SET NULL
+ UNIQUE KEY uq_products_ht_code(ht_code), UNIQUE KEY uq_products_qb_code(qb_code)
 ) ENGINE=InnoDB;
 CREATE TABLE IF NOT EXISTS withdrawals (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, withdrawal_no VARCHAR(40) NOT NULL UNIQUE, saved_on DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -24,16 +32,17 @@ CREATE TABLE IF NOT EXISTS withdrawals (
 ) ENGINE=InnoDB;
 CREATE TABLE IF NOT EXISTS withdrawal_items (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, withdrawal_id BIGINT UNSIGNED NOT NULL, line_no SMALLINT UNSIGNED NOT NULL, product_id BIGINT UNSIGNED NULL,
- product_name VARCHAR(255) NOT NULL, quantity DECIMAL(12,3) NOT NULL, remarks TEXT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ product_name VARCHAR(255) NOT NULL, ht_code VARCHAR(100) NULL, ht_description VARCHAR(255) NULL, quantity DECIMAL(12,3) NOT NULL, remarks TEXT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
  UNIQUE KEY uq_withdrawal_line(withdrawal_id,line_no), INDEX idx_wi_product(product_id),
  CONSTRAINT fk_wi_withdrawal FOREIGN KEY(withdrawal_id) REFERENCES withdrawals(id) ON DELETE CASCADE,
  CONSTRAINT fk_wi_product FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 CREATE TABLE IF NOT EXISTS invoices (
- id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, withdrawal_id BIGINT UNSIGNED NOT NULL UNIQUE, customer_id BIGINT UNSIGNED NOT NULL, invoice_date DATE NOT NULL,
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, withdrawal_id BIGINT UNSIGNED NOT NULL UNIQUE, customer_id BIGINT UNSIGNED NOT NULL, invoice_number VARCHAR(100) NULL, invoice_date DATE NOT NULL,
  po_no VARCHAR(100) NULL, status ENUM('Draft','Ready','Queued','Processing','Invoiced','Error','Uncertain Result') NOT NULL DEFAULT 'Draft',
  qb_invoice_no VARCHAR(100) NULL, qb_txn_id VARCHAR(100) NULL, submitted_by BIGINT UNSIGNED NULL, submitted_at DATETIME NULL,
  created_by BIGINT UNSIGNED NULL, updated_by BIGINT UNSIGNED NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_invoices_invoice_number(invoice_number),
  CONSTRAINT fk_invoice_withdrawal FOREIGN KEY(withdrawal_id) REFERENCES withdrawals(id), CONSTRAINT fk_invoice_customer FOREIGN KEY(customer_id) REFERENCES clients(id),
  CONSTRAINT fk_invoice_submitted FOREIGN KEY(submitted_by) REFERENCES employees(id) ON DELETE SET NULL, CONSTRAINT fk_invoice_created FOREIGN KEY(created_by) REFERENCES employees(id) ON DELETE SET NULL,
  CONSTRAINT fk_invoice_updated FOREIGN KEY(updated_by) REFERENCES employees(id) ON DELETE SET NULL
@@ -63,11 +72,8 @@ CREATE TABLE IF NOT EXISTS activity_logs (
 ) ENGINE=InnoDB;
 INSERT IGNORE INTO sites(site_name) VALUES ('Main Warehouse'),('Branch A'),('Branch B');
 INSERT IGNORE INTO clients(client_name) VALUES ('Sample Client A'),('Sample Client B'),('Sample Client C');
-INSERT IGNORE INTO products(product_name,item_code,description,u_m,default_price,default_site_id)
-SELECT 'CHICKEN POPPERS','CP-001','Chicken Poppers','BOX',125.00,id FROM sites WHERE site_name='Main Warehouse';
-INSERT IGNORE INTO products(product_name,item_code,description,u_m,default_price,default_site_id)
-SELECT 'GRILLED TENDER CHUNKS','GTC-002','Grilled Tender Chunks','BOX',210.00,id FROM sites WHERE site_name='Main Warehouse';
-INSERT IGNORE INTO products(product_name,item_code,description,u_m,default_price,default_site_id)
-SELECT 'CHICKEN NUGGETS','CN-003','Chicken Nuggets','BOX',180.00,id FROM sites WHERE site_name='Branch A';
-INSERT IGNORE INTO products(product_name,item_code,description,u_m,default_price,default_site_id)
-SELECT 'BEEF PATTY','BP-004','Beef Patty','BOX',250.00,id FROM sites WHERE site_name='Branch B';
+INSERT IGNORE INTO products(product_name,item_code,description,qb_code,qb_description,u_m,default_price,active)
+VALUES ('CHICKEN POPPERS','CP-001','Chicken Poppers','CP-001','Chicken Poppers','BOX',125.00,0),
+('GRILLED TENDER CHUNKS','GTC-002','Grilled Tender Chunks','GTC-002','Grilled Tender Chunks','BOX',210.00,0),
+('CHICKEN NUGGETS','CN-003','Chicken Nuggets','CN-003','Chicken Nuggets','BOX',180.00,0),
+('BEEF PATTY','BP-004','Beef Patty','BP-004','Beef Patty','BOX',250.00,0);

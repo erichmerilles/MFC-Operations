@@ -60,9 +60,9 @@ function next_withdrawal_no(PDO $pdo): string
 }
 function get_sites(PDO $pdo): array
 {
-    return $pdo->query('SELECT id,site_name FROM sites WHERE active=1 ORDER BY site_name')->fetchAll();
+    return $pdo->query('SELECT id,site_name,active FROM sites WHERE active=1 ORDER BY site_name')->fetchAll();
 }
 function get_products(PDO $pdo): array
 {
-    return $pdo->query('SELECT id,product_name,item_code,description,u_m,default_site_id,default_price,kg_per_box FROM products WHERE active=1 ORDER BY product_name')->fetchAll();
+    return $pdo->query('SELECT id,product_name,ht_code,qb_code,ht_description,qb_description,item_code,description,u_m,default_price,kg_per_box,qb_list_id,active FROM products WHERE active=1 ORDER BY product_name')->fetchAll();
 }

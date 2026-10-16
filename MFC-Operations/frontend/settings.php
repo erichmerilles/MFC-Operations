@@ -8,6 +8,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_admin();
     verify_csrf();
     try {
+        if (($_POST['action'] ?? '') === 'product_site_permission') {
+            $target = filter_var($_POST['employee_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            $grant = ($_POST['granted'] ?? '') === '1';
+            if (!$target || $target === (int)$_SESSION['user']['id']) throw new RuntimeException('Select an eligible Employee account.');
+            $check = $pdo->prepare("SELECT id,username FROM employees WHERE id=? AND role='Employee'");
+            $check->execute([$target]);
+            $employee = $check->fetch();
+            if (!$employee) throw new RuntimeException('The selected account is not an eligible Employee.');
+            if ($grant) {
+                $pdo->prepare("INSERT INTO employee_permissions(employee_id,permission_code,granted_by) VALUES(?,'manage_products_sites',?) ON DUPLICATE KEY UPDATE granted_by=VALUES(granted_by),granted_at=CURRENT_TIMESTAMP")->execute([$target, (int)$_SESSION['user']['id']]);
+                log_activity($pdo, 'GRANT', 'employee_permission', $target, 'Granted manage_products_sites to ' . $employee['username']);
+            } else {
+                $pdo->prepare("DELETE FROM employee_permissions WHERE employee_id=? AND permission_code='manage_products_sites'")->execute([$target]);
+                log_activity($pdo, 'REVOKE', 'employee_permission', $target, 'Revoked manage_products_sites from ' . $employee['username']);
+            }
+            flash('success', 'Product & Sites access updated.');
+            header('Location: settings.php');
+            exit;
+        }
         $name = trim($_POST['full_name'] ?? '');
         $username = trim($_POST['username'] ?? '');
         $password = (string)($_POST['password'] ?? '');
@@ -23,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $err = $e instanceof PDOException ? 'Could not create account. The username may already exist.' : $e->getMessage();
     }
 }
-$employees = $isAdmin ? $pdo->query('SELECT id,full_name,username,role,active,created_at FROM employees ORDER BY id')->fetchAll() : [];
+$employees = $isAdmin ? $pdo->query("SELECT e.id,e.full_name,e.username,e.role,e.active,e.created_at,IF(ep.employee_id IS NULL,0,1) manage_products_sites FROM employees e LEFT JOIN employee_permissions ep ON ep.employee_id=e.id AND ep.permission_code='manage_products_sites' ORDER BY e.id")->fetchAll() : [];
 $logs = $isAdmin ? $pdo->query('SELECT a.*,e.full_name FROM activity_logs a LEFT JOIN employees e ON e.id=a.employee_id ORDER BY a.id DESC LIMIT 30')->fetchAll() : []; ?>
 <div class="page-intro">
     <div>
@@ -65,6 +84,7 @@ $logs = $isAdmin ? $pdo->query('SELECT a.*,e.full_name FROM activity_logs a LEFT
                                 <th>Username</th>
                                 <th>Role</th>
                                 <th>Status</th>
+                                <th>Manage Products &amp; Sites</th>
                             </tr>
                         </thead>
                         <tbody><?php foreach ($employees as $emp): ?><tr>
@@ -72,6 +92,10 @@ $logs = $isAdmin ? $pdo->query('SELECT a.*,e.full_name FROM activity_logs a LEFT
                                     <td><?= e($emp['username']) ?></td>
                                     <td><?= e($emp['role']) ?></td>
                                     <td><span class="status-pill <?= $emp['active'] ? 'status-success' : 'status-danger' ?>"><?= $emp['active'] ? 'Active' : 'Inactive' ?></span></td>
+                                    <td><?php if ($emp['role'] === 'Employee'): ?><form method="post" class="d-flex gap-2"><input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="product_site_permission"><input type="hidden" name="employee_id" value="<?= (int)$emp['id'] ?>"><select class="form-select" name="granted" aria-label="Product and site permission for <?= e($emp['full_name']) ?>">
+                                                    <option value="1" <?= $emp['manage_products_sites'] ? 'selected' : '' ?>>Granted</option>
+                                                    <option value="0" <?= !$emp['manage_products_sites'] ? 'selected' : '' ?>>Not Granted</option>
+                                                </select><button class="btn btn-sm btn-primary">Save</button></form><?php else: ?>Always granted<?php endif; ?></td>
                                 </tr><?php endforeach; ?></tbody>
                     </table>
                 </div>

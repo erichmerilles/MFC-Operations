@@ -62,6 +62,18 @@ $clients = $pdo->query(
 )->fetchAll();
 
 $products = get_products($pdo);
+$productSearchOptions = [];
+foreach ($products as $product) {
+    $name = trim((string)$product['product_name']);
+    $description = trim((string)($product['ht_description'] ?? ''));
+    $label = $description !== '' && strcasecmp($name, $description) !== 0
+        ? $name . ' — ' . $description
+        : $name;
+    $productSearchOptions[$label] = [
+        'product_id' => (int)$product['id'],
+        'kg_per_box' => is_numeric($product['kg_per_box'] ?? null) ? (float)$product['kg_per_box'] : null,
+    ];
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -72,22 +84,22 @@ $products = get_products($pdo);
 $productWeights = [];
 
 $weightStmt = $pdo->query(
-    'SELECT product_name, kg_per_box
+    'SELECT id, kg_per_box
      FROM products
      WHERE active = 1
        AND kg_per_box IS NOT NULL'
 );
 
 foreach ($weightStmt->fetchAll(PDO::FETCH_ASSOC) as $weightRow) {
-    $productName = (string) $weightRow['product_name'];
+    $productId = (string) $weightRow['id'];
     $kgPerBox = $weightRow['kg_per_box'];
 
     if (
-        $productName !== '' &&
+        $productId !== '' &&
         is_numeric($kgPerBox) &&
         (float) $kgPerBox > 0
     ) {
-        $productWeights[$productName] = (float) $kgPerBox;
+        $productWeights[$productId] = (float) $kgPerBox;
     }
 }
 
@@ -336,7 +348,7 @@ foreach ($values as $item) {
             <div>
                 <h3>Withdrawal Items</h3>
                 <p>
-                    Enter each product and its quantity.
+                    Search by product name or withdrawal description, then select a matching product.
                     Blank product rows are ignored.
                 </p>
             </div>
@@ -399,20 +411,26 @@ foreach ($values as $item) {
                 <tbody>
                     <?php foreach ($values as $i => $it): ?>
                         <?php
-                        $lineProductName = (string) ($it['product_name'] ?? '');
+                        $lineProductId = (string)($it['product_id'] ?? '');
+                        $lineProductName = trim((string)($it['product_name'] ?? ''));
+                        $lineProductDescription = trim((string)($it['ht_description'] ?? ''));
+                        $lineProductLabel = $lineProductName;
+                        if ($lineProductDescription !== '' && strcasecmp($lineProductName, $lineProductDescription) !== 0) {
+                            $lineProductLabel .= ' — ' . $lineProductDescription;
+                        }
                         $lineQuantity = $it['quantity'] ?? '';
 
                         $lineTotalKg = null;
 
                         if (
-                            $lineProductName !== '' &&
+                            $lineProductId !== '' &&
                             $lineQuantity !== '' &&
                             is_numeric($lineQuantity) &&
-                            isset($productWeights[$lineProductName])
+                            isset($productWeights[$lineProductId])
                         ) {
                             $lineTotalKg =
                                 (float) $lineQuantity *
-                                $productWeights[$lineProductName];
+                                $productWeights[$lineProductId];
                         }
                         ?>
 
@@ -424,10 +442,10 @@ foreach ($values as $item) {
                             <td>
                                 <input
                                     class="form-control table-input product-name"
-                                    name="items[<?= $i ?>][product_name]"
+                                    name="items[<?= $i ?>][product_search]"
                                     list="productList"
-                                    value="<?= e($it['product_name'] ?? '') ?>"
-                                    placeholder="Type or select a product"
+                                    value="<?= e($lineProductLabel) ?>"
+                                    placeholder="Search product name or description"
                                     autocomplete="off"
                                     aria-label="Product for line <?= $i + 1 ?>">
 
@@ -435,7 +453,7 @@ foreach ($values as $item) {
                                     type="hidden"
                                     name="items[<?= $i ?>][product_id]"
                                     class="product-id"
-                                    value="<?= e($it['product_id'] ?? '') ?>">
+                                    value="<?= e($lineProductId) ?>">
                             </td>
 
                             <td>
@@ -489,8 +507,8 @@ foreach ($values as $item) {
         </div>
 
         <datalist id="productList">
-            <?php foreach ($products as $pr): ?>
-                <option value="<?= e($pr['product_name']) ?>"></option>
+            <?php foreach ($productSearchOptions as $label => $mapping): ?>
+                <option value="<?= e($label) ?>"></option>
             <?php endforeach; ?>
         </datalist>
 
@@ -589,22 +607,40 @@ foreach ($values as $item) {
                 ) ?>
             )
         );
+        const productCatalog = new Map(
+            Object.entries(
+                <?= json_encode(
+                    $productSearchOptions,
+                    JSON_HEX_TAG |
+                        JSON_HEX_APOS |
+                        JSON_HEX_AMP |
+                        JSON_HEX_QUOT |
+                        JSON_UNESCAPED_UNICODE
+                ) ?>
+            )
+        );
+
+        function syncProductSelection(row) {
+            const productInput = row.querySelector('.product-name');
+            const productIdInput = row.querySelector('.product-id');
+            const selected = productCatalog.get(productInput.value.trim());
+            productIdInput.value = selected?.product_id || '';
+        }
 
         function updateTotalKg(row) {
-            const productInput = row.querySelector('.product-name');
             const quantityInput = row.querySelector('.item-quantity');
             const totalKgInput = row.querySelector('.total-kg');
 
-            const productName = productInput.value.trim();
+            const productId = row.querySelector('.product-id').value.trim();
             const quantityText = quantityInput.value.trim();
 
-            if (productName === '' || quantityText === '') {
+            if (productId === '' || quantityText === '') {
                 totalKgInput.value = '';
                 return;
             }
 
             const quantity = Number(quantityText);
-            const kgPerBox = productWeights.get(productName);
+            const kgPerBox = productWeights.get(productId);
 
             if (
                 !Number.isFinite(quantity) ||
@@ -780,7 +816,7 @@ foreach ($values as $item) {
 
         /*
         |--------------------------------------------------------------------------
-        | Preserve existing product-ID reset behavior
+        | Keep visible product choice linked to its catalog record
         |--------------------------------------------------------------------------
         */
 
@@ -788,8 +824,7 @@ foreach ($values as $item) {
             if (event.target.classList.contains('product-name')) {
                 const row = event.target.closest('tr');
 
-                // Preserve your existing behavior.
-                row.querySelector('.product-id').value = '';
+                syncProductSelection(row);
 
                 updateTotalKg(row);
                 updateCounters();
@@ -808,6 +843,10 @@ foreach ($values as $item) {
                 event.target.classList.contains('item-quantity')
             ) {
                 const row = event.target.closest('tr');
+
+                if (event.target.classList.contains('product-name')) {
+                    syncProductSelection(row);
+                }
 
                 updateTotalKg(row);
                 updateAllTotalKg();
@@ -829,9 +868,11 @@ foreach ($values as $item) {
 
             for (const row of rows) {
                 const productInput = row.querySelector('.product-name');
+                const productIdInput = row.querySelector('.product-id');
                 const quantityInput = row.querySelector('.item-quantity');
 
                 const productName = productInput.value.trim();
+                const productId = productIdInput.value.trim();
                 const quantityValue = quantityInput.value.trim();
                 const quantity = Number(quantityValue);
 
@@ -845,6 +886,11 @@ foreach ($values as $item) {
 
                 // A product must have a valid positive quantity.
                 if (productName !== '') {
+                    if (productId === '') {
+                        invalidRow = productInput;
+                        errorMessage = 'Choose a product from the suggestions. Search by product name or description.';
+                        break;
+                    }
                     if (
                         quantityValue === '' ||
                         !Number.isFinite(quantity) ||
@@ -875,7 +921,7 @@ foreach ($values as $item) {
 
             // Prevent submission if the withdrawal contains no products.
             const hasProduct = rows.some((row) => {
-                return row.querySelector('.product-name').value.trim() !== '';
+                return row.querySelector('.product-id').value.trim() !== '';
             });
 
             if (!hasProduct) {

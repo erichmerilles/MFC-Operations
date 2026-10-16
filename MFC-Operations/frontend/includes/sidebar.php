@@ -10,7 +10,7 @@
     </nav>
     <div class="nav-label nav-label-spaced">SETUP</div>
     <nav class="nav flex-column app-nav" aria-label="Setup">
-        <a class="nav-link <?= nav_active('products_sites.php') ?>" href="products_sites.php"><i class="bi bi-box-seam-fill nav-icon" aria-hidden="true"></i>Products &amp; Sites</a>
+        <?php if(can_manage_products_sites() || (($_SESSION['user']['role'] ?? '') === 'Employee')): ?><a class="nav-link <?= nav_active('products_sites.php') ?>" href="products_sites.php"><i class="bi bi-box-seam-fill nav-icon" aria-hidden="true"></i>Products &amp; Sites</a><?php endif; ?>
         <a class="nav-link <?= nav_active('settings.php') ?>" href="settings.php"><i class="bi bi-gear-fill nav-icon" aria-hidden="true"></i>Settings</a>
     </nav>
     <div class="sidebar-bottom">

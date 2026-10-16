@@ -48,8 +48,8 @@ if (!$inv) {
     $iid = (int) $pdo->lastInsertId();
 
     $s = $pdo->prepare(
-        'SELECT wi.*, p.item_code, p.description, p.u_m,
-                p.default_price, p.default_site_id
+        'SELECT wi.*, p.qb_code, p.qb_description, p.u_m,
+                p.default_price
          FROM withdrawal_items wi
          LEFT JOIN products p ON p.id = wi.product_id
          WHERE wi.withdrawal_id = ?
@@ -74,11 +74,11 @@ if (!$inv) {
             $iid,
             $it['id'],
             $it['product_id'],
-            $it['default_site_id'],
+            null,
             $it['product_name'],
             $it['quantity'],
-            $it['item_code'],
-            $it['description'],
+            $it['qb_code'],
+            $it['qb_description'],
             $it['u_m'],
             $price,
             $price * (float) $it['quantity'],
@@ -113,8 +113,10 @@ $s->execute([$inv['id']]);
 $lines = $s->fetchAll();
 
 $products = get_products($pdo);
+$products = array_values(array_filter($products, static fn($p) => trim((string)($p['qb_code'] ?? '')) !== ''));
+$customers = $pdo->query('SELECT id,client_name,qb_list_id FROM clients WHERE active=1 ORDER BY client_name')->fetchAll();
 $sites = get_sites($pdo);
-$locked = $inv['status'] === 'Invoiced';
+$locked = in_array($inv['status'], ['Invoiced', 'Queued', 'Processing', 'Uncertain Result'], true);
 
 $sum = 0;
 foreach ($lines as $ln) {
@@ -140,9 +142,8 @@ foreach ($lines as $ln) {
 </div>
 
 <div class="notice warning">
-    <strong>Data separation:</strong>
-    additional invoice items are stored only in invoice_items.
-    QuickBooks submission is not enabled in Phase 2.
+    <strong>QuickBooks posting is unavailable:</strong>
+    this installation has no Web Connector service or verified company-file mappings. Drafts save locally; sending is disabled to prevent unsupported fields or duplicate inventory effects.
 </div>
 
 <form
@@ -173,17 +174,23 @@ foreach ($lines as $ln) {
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label">Customer</label>
-                    <input class="form-control" value="<?= e($w['client_name']) ?>" readonly>
-                    <input
-                        type="hidden"
-                        name="customer_id"
-                        value="<?= (int) $w['client_id'] ?>">
+                    <label class="form-label">CUSTOMER NAME <span class="required-mark">*</span></label>
+                    <select class="form-select" name="customer_id" required <?= $locked ? 'disabled' : '' ?>>
+                        <option value="">Select customer</option>
+                        <?php foreach ($customers as $customer): ?>
+                            <option value="<?= (int)$customer['id'] ?>" <?= (int)$inv['customer_id'] === (int)$customer['id'] ? 'selected' : '' ?>><?= e($customer['client_name']) ?><?= !$customer['qb_list_id'] ? ' — QuickBooks mapping required' : '' ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php if (!$locked): ?><div class="form-text">Defaults to the source withdrawal customer. Changing it affects this invoice only.</div><?php endif; ?>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">INVOICE NUMBER <span class="required-mark">*</span></label>
+                    <input class="form-control" name="invoice_number" maxlength="100" value="<?= e($inv['invoice_number'] ?? '') ?>" required <?= $locked ? 'readonly' : '' ?>>
                 </div>
 
                 <div class="col-md-3">
                     <label class="form-label">
-                        Invoice Date <span class="required-mark">*</span>
+                        Invoice Date
                     </label>
                     <input
                         class="form-control"
@@ -195,7 +202,7 @@ foreach ($lines as $ln) {
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label">PO No.</label>
+                    <label class="form-label">PO #</label>
                     <input
                         class="form-control"
                         name="po_no"
@@ -230,21 +237,16 @@ foreach ($lines as $ln) {
             <table class="table" id="invoiceLines" data-pagination-exempt>
                 <thead>
                     <tr>
-                        <th>Source</th>
-                        <th>Product</th>
-                        <th>Site</th>
-                        <th>Qty</th>
-                        <th>Lot No.</th>
-                        <th>Item Code</th>
-                        <th>Description</th>
+                        <th>SITE</th>
+                        <th>QUANTITY</th>
+                        <th>LOT NUMBER</th>
+                        <th>ITEM CODE</th>
+                        <th>DESCRIPTION</th>
                         <th>U/M</th>
-                        <th>Price Each</th>
-                        <th>Amount</th>
-                        <th>Tax</th>
-                        <th>Expiration</th>
-                        <?php if (!$locked): ?>
-                            <th class="text-center">Action</th>
-                        <?php endif; ?>
+                        <th>PRICE EACH</th>
+                        <th>AMOUNT</th>
+                        <th>EXPIRATION DATE</th>
+                        <th>TAX</th>
                     </tr>
                 </thead>
 
@@ -252,10 +254,9 @@ foreach ($lines as $ln) {
                     <?php foreach ($lines as $i => $ln): ?>
                         <tr>
                             <td>
-                                <span class="status-pill <?= $ln['source_type'] === 'ADDITIONAL' ? 'status-info' : 'status-muted' ?>">
-                                    <?= e(ucfirst(strtolower($ln['source_type']))) ?>
-                                </span>
-
+                                <select class="form-select table-input" name="items[<?= $i ?>][site_id]" required <?= $locked ? 'disabled' : '' ?>>
+                                    <option value="">Select site</option><?php foreach ($sites as $site): ?><option value="<?= (int)$site['id'] ?>" <?= (string)$ln['site_id'] === (string)$site['id'] ? 'selected' : '' ?>><?= e($site['site_name']) ?></option><?php endforeach; ?>
+                                </select>
                                 <input
                                     type="hidden"
                                     name="items[<?= $i ?>][id]"
@@ -268,33 +269,6 @@ foreach ($lines as $ln) {
                                     type="hidden"
                                     name="items[<?= $i ?>][withdrawal_item_id]"
                                     value="<?= e($ln['withdrawal_item_id'] ?? '') ?>">
-                            </td>
-
-                            <td>
-                                <input
-                                    class="form-control table-input"
-                                    name="items[<?= $i ?>][product_name]"
-                                    list="invoiceProductList"
-                                    value="<?= e($ln['product_name']) ?>"
-                                    required
-                                    <?= $locked ? 'readonly' : '' ?>>
-                            </td>
-
-                            <td>
-                                <select
-                                    class="form-select table-input"
-                                    name="items[<?= $i ?>][site_id]"
-                                    required
-                                    <?= $locked ? 'disabled' : '' ?>>
-                                    <option value="">Select site</option>
-                                    <?php foreach ($sites as $site): ?>
-                                        <option
-                                            value="<?= $site['id'] ?>"
-                                            <?= ((string) $ln['site_id'] === (string) $site['id'] ? 'selected' : '') ?>>
-                                            <?= e($site['site_name']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
                             </td>
 
                             <td>
@@ -326,11 +300,9 @@ foreach ($lines as $ln) {
                             </td>
 
                             <td>
-                                <input
-                                    class="form-control table-input"
-                                    name="items[<?= $i ?>][description]"
-                                    value="<?= e($ln['description'] ?? '') ?>"
-                                    <?= $locked ? 'readonly' : '' ?>>
+                                <div class="d-flex gap-1"><select class="form-select table-input product-select" name="items[<?= $i ?>][product_id]" required <?= $locked ? 'disabled' : '' ?>>
+                                        <option value="">Select QB Code</option><?php foreach ($products as $pr): ?><option value="<?= (int)$pr['id'] ?>" data-code="<?= e($pr['qb_code'] ?? '') ?>" data-desc="<?= e($pr['qb_description'] ?? '') ?>" data-um="<?= e($pr['u_m'] ?? '') ?>" data-price="<?= e($pr['default_price'] ?? '') ?>" <?= (int)$ln['product_id'] === (int)$pr['id'] ? 'selected' : '' ?>><?= e($pr['qb_code'] ?? '') ?> — <?= e($pr['qb_description'] ?? '') ?><?= !$pr['qb_list_id'] ? ' — QuickBooks item mapping required' : '' ?></option><?php endforeach; ?>
+                                    </select><?php if (!$locked): ?><button type="button" class="btn btn-sm btn-outline-danger remove-invoice-line" title="Remove line" aria-label="Remove invoice line">×</button><?php endif; ?></div><input type="hidden" name="items[<?= $i ?>][description]" value="<?= e($ln['description'] ?? '') ?>"><input type="hidden" name="items[<?= $i ?>][product_name]" value="<?= e($ln['product_name']) ?>">
                             </td>
 
                             <td>
@@ -361,10 +333,10 @@ foreach ($lines as $ln) {
                             </td>
 
                             <td>
-                                <select
-                                    class="form-select table-input"
-                                    name="items[<?= $i ?>][tax_code]"
-                                    <?= $locked ? 'disabled' : '' ?>>
+                                <input class="form-control table-input" type="date" name="items[<?= $i ?>][expiration_date]" value="<?= e($ln['expiration_date'] ?? '') ?>" <?= $locked ? 'readonly' : '' ?>>
+                            </td>
+                            <td>
+                                <select class="form-select table-input" name="items[<?= $i ?>][tax_code]" required <?= $locked ? 'disabled' : '' ?>>
                                     <?php foreach (['Non', 'Tax', 'Exempt'] as $tax): ?>
                                         <option <?= ($ln['tax_code'] === $tax ? 'selected' : '') ?>>
                                             <?= e($tax) ?>
@@ -373,37 +345,11 @@ foreach ($lines as $ln) {
                                 </select>
                             </td>
 
-                            <td>
-                                <input
-                                    class="form-control table-input"
-                                    type="date"
-                                    name="items[<?= $i ?>][expiration_date]"
-                                    value="<?= e($ln['expiration_date'] ?? '') ?>"
-                                    <?= $locked ? 'readonly' : '' ?>>
-                            </td>
-
-                            <?php if (!$locked): ?>
-                                <td class="text-center">
-                                    <button
-                                        type="button"
-                                        class="btn btn-sm btn-outline-danger remove-invoice-line"
-                                        aria-label="Remove invoice item"
-                                        title="Remove invoice item">
-                                        <i class="bi bi-trash3" aria-hidden="true"></i>
-                                    </button>
-                                </td>
-                            <?php endif; ?>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
-
-        <datalist id="invoiceProductList">
-            <?php foreach ($products as $pr): ?>
-                <option value="<?= e($pr['product_name']) ?>">
-                <?php endforeach; ?>
-        </datalist>
 
         <div class="panel-body d-flex justify-content-end">
             <div class="total-card">
@@ -456,130 +402,51 @@ foreach ($lines as $ln) {
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const tbody = document.querySelector('#invoiceLines tbody');
-
-        function renumber() {
-            [...tbody.rows].forEach((row, index) => {
-                row.querySelectorAll('[name]').forEach((el) => {
-                    el.name = el.name.replace(
-                        /items\[\d+\]/,
-                        'items[' + index + ']'
-                    );
-                });
-            });
-        }
-
         document.querySelector('#addInvoiceLine')?.addEventListener('click', () => {
             const row = tbody.rows[0]?.cloneNode(true);
             if (!row) return;
-
-            row.querySelectorAll('input').forEach((el) => {
-                el.value = '';
-
-                if (el.name.endsWith('[source_type]')) {
-                    el.value = 'ADDITIONAL';
-                }
-
-                if (el.name.endsWith('[withdrawal_item_id]')) {
-                    el.value = '';
-                }
-
-                if (el.name.endsWith('[id]')) {
-                    el.value = '';
-                }
+            const index = tbody.rows.length;
+            row.querySelectorAll('[name]').forEach((el) => {
+                el.name = el.name.replace(/items\[\d+\]/, 'items[' + index + ']');
+                if (el.name.endsWith('[source_type]')) el.value = 'ADDITIONAL';
+                else if (el.name.endsWith('[id]') || el.name.endsWith('[withdrawal_item_id]')) el.value = '';
+                else if (el.matches('select')) el.selectedIndex = 0;
+                else if (el.classList.contains('amount')) el.value = '0.00';
+                else if (el.name.endsWith('[tax_code]')) el.value = 'Non';
+                else if (el.type === 'hidden' || el.name.endsWith('[lot_number]') || el.name.endsWith('[item_code]') || el.name.endsWith('[description]') || el.name.endsWith('[u_m]') || el.name.endsWith('[expiration_date]')) el.value = '';
+                else if (el.name.endsWith('[quantity]')) el.value = '1';
+                else if (el.name.endsWith('[price_each]')) el.value = '0.00';
             });
-
-            row.querySelector('td:first-child').innerHTML =
-                '<span class="status-pill status-info">Additional</span>' +
-                '<input type="hidden" name="items[0][id]" value="">' +
-                '<input type="hidden" name="items[0][source_type]" value="ADDITIONAL">' +
-                '<input type="hidden" name="items[0][withdrawal_item_id]" value="">';
-
-            row.querySelectorAll('select').forEach((select) => {
-                select.selectedIndex = 0;
-            });
-
+            row.querySelector("input[name$='[source_type]']").value = 'ADDITIONAL';
             tbody.appendChild(row);
-            renumber();
         });
-
-        tbody.addEventListener('click', async (event) => {
+        tbody.addEventListener('click', event => {
             const button = event.target.closest('.remove-invoice-line');
-            if (!button) return;
-
-            const result = await Swal.fire({
-                title: 'Remove this invoice item?',
-                text: 'The item will be removed from this draft.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Remove item',
-                cancelButtonText: 'Keep item',
-                confirmButtonColor: '#b42318',
-                reverseButtons: true
-            });
-
-            if (result.isConfirmed && tbody.rows.length > 1) {
-                button.closest('tr').remove();
-                renumber();
-            }
+            if (button && tbody.rows.length > 1) button.closest('tr').remove();
+        });
+        tbody.addEventListener('change', (event) => {
+            if (!event.target.matches('.product-select')) return;
+            const row = event.target.closest('tr');
+            const opt = event.target.selectedOptions[0];
+            if (!opt?.value) return;
+            row.querySelector("input[name$='[item_code]']").value = opt.dataset.code || '';
+            row.querySelector("input[name$='[description]']").value = opt.dataset.desc || '';
+            row.querySelector("input[name$='[product_name]']").value = opt.textContent.trim();
+            row.querySelector("input[name$='[u_m]']").value = opt.dataset.um || '';
+            const price = row.querySelector('.invoice-price');
+            if (!price.value || Number(price.value) === 0) price.value = Number(opt.dataset.price || 0).toFixed(2);
+            updateAmount(row);
         });
 
-        document.addEventListener('change', async (event) => {
-            if (!event.target.matches("#invoiceLines input[name$='[product_name]']")) {
-                return;
-            }
-
-            const row = event.target.closest('tr');
-
-            try {
-                const response = await fetch(
-                    '../backend/api/products.php?q=' +
-                    encodeURIComponent(event.target.value)
-                );
-
-                const list = await response.json();
-                const product = list.find(
-                    (item) => item.product_name === event.target.value
-                );
-
-                if (!product) return;
-
-                const item = row.querySelector("input[name$='[item_code]']");
-                const description = row.querySelector("input[name$='[description]']");
-                const um = row.querySelector("input[name$='[u_m]']");
-                const price = row.querySelector('.invoice-price');
-                const site = row.querySelector("select[name$='[site_id]']");
-
-                if (item) item.value = product.item_code || '';
-                if (description) description.value = product.description || '';
-                if (um) um.value = product.u_m || '';
-
-                if (
-                    price &&
-                    (!price.value || Number(price.value) === 0) &&
-                    product.default_price !== null
-                ) {
-                    price.value = Number(product.default_price).toFixed(2);
-                }
-
-                if (site && product.default_site_id) {
-                    site.value = String(product.default_site_id);
-                }
-
-                const quantity = row.querySelector('.invoice-qty');
-
-                if (quantity) {
-                    const amount = row.querySelector('.amount');
-
-                    if (amount) {
-                        amount.value = (
-                            Number(quantity.value || 0) *
-                            Number(price?.value || 0)
-                        ).toFixed(2);
-                    }
-                }
-            } catch (error) {
-                console.error('Product lookup failed', error);
-            }
+        function updateAmount(row) {
+            row.querySelector('.amount').value = (Number(row.querySelector('.invoice-qty').value || 0) * Number(row.querySelector('.invoice-price').value || 0)).toFixed(2);
+            document.querySelector('[data-invoice-total]').textContent = [...tbody.querySelectorAll('.amount')].reduce((sum, input) => sum + Number(input.value || 0), 0).toLocaleString('en-PH', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+        tbody.addEventListener('input', event => {
+            if (event.target.matches('.invoice-qty,.invoice-price')) updateAmount(event.target.closest('tr'));
         });
     });
 </script>

@@ -36,6 +36,19 @@ withdrawal-qb/
 6. Open `http://localhost/withdrawal-qb/frontend/setup.php` and create the first administrator account. Delete `frontend/setup.php` after initial setup.
 7. Sign in at `http://localhost/withdrawal-qb/frontend/login.php`.
 
+### Upgrade an existing database
+
+Back up `withdrawal_qb` first. For an existing database, apply `20261015_invoice_number.sql` if it has not already been applied, then follow `backend/database/migrations/20261015_product_site_permissions.sql` in phpMyAdmin with `withdrawal_qb` selected. Do not import `schema.sql` over an existing database.
+
+The product/site migration is intentionally staged:
+
+1. Run the `ALTER`/`UPDATE` statements through creation of `employee_permissions`. Existing `item_code` and `description` are copied to the QB mapping fields; `product_name` is copied to the initial HT description because it is the existing withdrawal display text. The legacy columns and all product/site/transaction IDs remain intact.
+2. Review the duplicate-code queries and the incomplete-mapping report. Resolve QB conflicts against the real item list. Supply each HT Code from the authoritative HT master list; the migration never manufactures one. Products without an HT Code cannot be selected for new withdrawals. Populate descriptions/mappings and set products active only when the required fields are confirmed.
+3. Deploy the updated PHP files. Admins can complete legacy mappings in Products & Sites. Admins can grant Employee access in Settings using **Manage Products & Sites**.
+4. After confirming the running code no longer reads `products.default_site_id`, inspect `SHOW CREATE TABLE products`, then manually run the commented FK and column drop statements at the end of the migration. Invoice line `site_id` is preserved. Only after reviewing/fixing duplicates, add the two commented unique indexes. Existing DB collation is case-insensitive in the supplied schema.
+
+The migration file includes the review queries and commented final DDL. Keep a copy of the pre-migration backup until the new withdrawal, invoice and employee permission paths are verified in the local database.
+
 ## Phase 2 scope
 
 - Local MySQL records for withdrawals and invoice preparation.
@@ -48,6 +61,8 @@ withdrawal-qb/
 ## Important scope boundary
 
 QuickBooks Web Connector connectivity is a **required Phase 2 acceptance item but is not yet implemented or verified in this package**. The remaining integration work must verify Web Connector authentication, authorization to the correct QuickBooks company file, qbXML request/response communication, a test invoice, successful and rejected responses, duplicate/uncertain-result handling, and documented customer/item mappings in the real QuickBooks Enterprise 24.0 environment. Do not enable invoice posting or claim success until these tests pass.
+
+Invoice drafts retain local site, lot, item code, product identity/description, unit, price, amount, expiration, and local tax choice. These values are not proof of QuickBooks mappings. In particular, SITE, LOT NUMBER, ITEM CODE, U/M, EXPIRATION DATE, and the local `Non`/`Tax`/`Exempt` values need company-file field/configuration decisions and qbXML verification before posting. Customer and product `qb_list_id` values must also be populated from verified QuickBooks records. Posting remains disabled until a Web Connector service and explicit supported mappings are implemented.
 
 ## Print
 

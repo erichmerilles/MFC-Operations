@@ -2,7 +2,7 @@
 
 require __DIR__ . '/includes/layout_start.php';
 $pdo = db();
-$jobs = $pdo->query('SELECT j.*,w.withdrawal_no,c.client_name FROM qb_jobs j JOIN invoices i ON i.id=j.invoice_id JOIN withdrawals w ON w.id=i.withdrawal_id JOIN clients c ON c.id=w.client_id ORDER BY j.id DESC')->fetchAll();
+$jobs = $pdo->query('SELECT j.*,i.invoice_number,w.withdrawal_no,c.client_name FROM qb_jobs j JOIN invoices i ON i.id=j.invoice_id JOIN withdrawals w ON w.id=i.withdrawal_id JOIN clients c ON c.id=i.customer_id ORDER BY j.id DESC')->fetchAll();
 $counts = $pdo->query("SELECT status,COUNT(*) total FROM qb_jobs GROUP BY status")->fetchAll(PDO::FETCH_KEY_PAIR); ?>
 <div class="page-intro">
     <div>

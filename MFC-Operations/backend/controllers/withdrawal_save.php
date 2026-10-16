@@ -209,10 +209,9 @@ try {
      * Prepare this statement once and reuse it for every item.
      */
     $productStmt = $pdo->prepare(
-        'SELECT id, product_name
+        'SELECT id, product_name, ht_code, ht_description, active
          FROM products
-         WHERE active = 1
-           AND product_name = ?
+         WHERE id = ?
          LIMIT 1'
     );
 
@@ -223,7 +222,8 @@ try {
             );
         }
 
-        $name = $readString($item, 'product_name');
+        $searchLabel = $readString($item, 'product_search');
+        $productIdRaw = $readString($item, 'product_id');
         $qty = $readString($item, 'quantity');
         $remarks = $readString($item, 'remarks');
 
@@ -231,7 +231,8 @@ try {
          * Ignore a completely blank row.
          */
         if (
-            $name === '' &&
+            $searchLabel === '' &&
+            $productIdRaw === '' &&
             $qty === '' &&
             $remarks === ''
         ) {
@@ -243,7 +244,8 @@ try {
          * This rejects decimals, negative numbers and scientific notation.
          */
         if (
-            $name === '' ||
+            $searchLabel === '' ||
+            !filter_var($productIdRaw, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ||
             $qty === '' ||
             !preg_match('/^\d+$/D', $qty)
         ) {
@@ -277,17 +279,25 @@ try {
         }
 
         /*
-         * Match the submitted product to the active product master.
-         * The exact product name is retained when saving.
+         * Confirm the visible name/description label belongs to this active product.
          */
-        $productStmt->execute([$name]);
-
+        $productId = (int) $productIdRaw;
+        $productStmt->execute([$productId]);
         $product = $productStmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$product) {
+        if (!$product || (int) $product['active'] !== 1) {
             throw new RuntimeException(
-                'Product "' . $name .
-                    '" is not in the active product list. Add it to Products & Sites first.'
+                'The selected product is no longer active. Choose another product.'
+            );
+        }
+
+        $productName = trim((string) $product['product_name']);
+        $productDescription = trim((string) ($product['ht_description'] ?? ''));
+        $expectedLabel = $productDescription !== '' && strcasecmp($productName, $productDescription) !== 0
+            ? $productName . ' — ' . $productDescription
+            : $productName;
+        if (trim($searchLabel) !== $expectedLabel) {
+            throw new RuntimeException(
+                'Choose a product from the suggestions so its name and description match the product catalog.'
             );
         }
 
@@ -474,9 +484,11 @@ try {
             line_no,
             product_id,
             product_name,
+            ht_code,
+            ht_description,
             quantity,
             remarks
-         ) VALUES (?, ?, ?, ?, ?, ?)'
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
     );
 
     foreach ($valid as $index => $item) {
@@ -485,6 +497,8 @@ try {
             $index + 1,
             $item['product']['id'],
             $item['product']['product_name'],
+            $item['product']['ht_code'],
+            $item['product']['ht_description'],
             $item['quantity'],
             $item['remarks'] !== '' ? $item['remarks'] : null
         ]);
