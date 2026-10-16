@@ -63,16 +63,25 @@ $clients = $pdo->query(
 
 $products = get_products($pdo);
 $productSearchOptions = [];
+$clientSearchOptions = [];
+$activeProductsById = [];
 foreach ($products as $product) {
-    $name = trim((string)$product['product_name']);
-    $description = trim((string)($product['ht_description'] ?? ''));
-    $label = $description !== '' && strcasecmp($name, $description) !== 0
-        ? $name . ' — ' . $description
-        : $name;
-    $productSearchOptions[$label] = [
+    $label = withdrawal_product_label(
+        (string)$product['product_name'],
+        $product['ht_description'] ?? null
+    );
+    $productSearchOptions[] = [
         'product_id' => (int)$product['id'],
+        'display_label' => $label,
+        'product_name' => (string)$product['product_name'],
+        'ht_code' => (string)($product['ht_code'] ?? ''),
+        'ht_description' => (string)($product['ht_description'] ?? ''),
         'kg_per_box' => is_numeric($product['kg_per_box'] ?? null) ? (float)$product['kg_per_box'] : null,
     ];
+    $activeProductsById[(string)$product['id']] = $product;
+}
+foreach ($clients as $client) {
+    $clientSearchOptions[(string)$client['client_name']] = (int)$client['id'];
 }
 
 /*
@@ -173,12 +182,16 @@ foreach ($values as $item) {
 
         <?php if ($record): ?>
             <a
-                href="withdrawal_print.php?withdrawal_no=<?= e($nextNo) ?>"
+                href="withdrawal_print.php?withdrawal_no=<?= e($record['withdrawal_no']) ?>"
                 target="_blank"
                 rel="noopener"
                 class="btn btn-outline-secondary">
                 <i class="bi bi-printer" aria-hidden="true"></i>
                 Print form
+            </a>
+            <a href="withdrawal_form.php" class="btn btn-primary">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                New Withdrawal
             </a>
         <?php endif; ?>
     </div>
@@ -194,11 +207,6 @@ foreach ($values as $item) {
         type="hidden"
         name="_csrf"
         value="<?= e(csrf_token()) ?>">
-
-    <input
-        type="hidden"
-        name="withdrawal_no"
-        value="<?= e($nextNo) ?>">
 
     <input
         type="hidden"
@@ -232,12 +240,15 @@ foreach ($values as $item) {
                     <input
                         id="withdrawalNoDisplay"
                         class="form-control withdrawal-number"
+                        name="withdrawal_no"
                         value="<?= e($nextNo) ?>"
-                        readonly
-                        aria-readonly="true">
+                        <?= $record ? 'readonly aria-readonly="true"' : '' ?>
+                        required
+                        maxlength="40"
+                        autocomplete="off">
 
                     <div class="form-text">
-                        Automatically assigned
+                        <?= $record ? 'Saved withdrawal number' : 'Suggested number; you can change it before saving.' ?>
                     </div>
                 </div>
 
@@ -256,30 +267,17 @@ foreach ($values as $item) {
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label" for="clientId">
+                    <label class="form-label" for="clientName">
                         Client Name <span class="required-mark">*</span>
                     </label>
-
-                    <select
-                        id="clientId"
-                        class="form-select"
-                        name="client_id"
-                        required>
-
-                        <option value="">Select client</option>
-
-                        <?php foreach ($clients as $c): ?>
-                            <option
-                                value="<?= e($c['id']) ?>"
-                                <?= (
-                                    (string) ($record['client_id'] ?? '') ===
-                                    (string) $c['id']
-                                ) ? 'selected' : '' ?>>
-
-                                <?= e($c['client_name']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <div class="withdrawal-autocomplete" data-autocomplete="client">
+                        <input id="clientName" class="form-control" name="client_name" list="clientList" value="<?= e($record['client_name'] ?? '') ?>" placeholder="Search client name" autocomplete="off" required>
+                        <input type="hidden" id="clientId" name="client_id" value="<?= e($record['client_id'] ?? '') ?>">
+                        <datalist id="clientList">
+                            <?php foreach ($clientSearchOptions as $clientName => $clientId): ?><option value="<?= e($clientName) ?>"></option><?php endforeach; ?>
+                        </datalist>
+                        <div class="form-text">Type a client name and choose a matching active client.</div>
+                    </div>
                 </div>
 
                 <div class="col-md-3">
@@ -348,7 +346,7 @@ foreach ($values as $item) {
             <div>
                 <h3>Withdrawal Items</h3>
                 <p>
-                    Search by product name or withdrawal description, then select a matching product.
+                    Search by product name, HT Code, or withdrawal description, then select a matching product.
                     Blank product rows are ignored.
                 </p>
             </div>
@@ -414,10 +412,10 @@ foreach ($values as $item) {
                         $lineProductId = (string)($it['product_id'] ?? '');
                         $lineProductName = trim((string)($it['product_name'] ?? ''));
                         $lineProductDescription = trim((string)($it['ht_description'] ?? ''));
-                        $lineProductLabel = $lineProductName;
-                        if ($lineProductDescription !== '' && strcasecmp($lineProductName, $lineProductDescription) !== 0) {
-                            $lineProductLabel .= ' — ' . $lineProductDescription;
-                        }
+                        $currentProduct = $activeProductsById[$lineProductId] ?? null;
+                        $lineProductLabel = $currentProduct
+                            ? withdrawal_product_label((string)$currentProduct['product_name'], $currentProduct['ht_description'] ?? null)
+                            : withdrawal_product_label($lineProductName, $lineProductDescription);
                         $lineQuantity = $it['quantity'] ?? '';
 
                         $lineTotalKg = null;
@@ -440,14 +438,10 @@ foreach ($values as $item) {
                             </td>
 
                             <td>
-                                <input
-                                    class="form-control table-input product-name"
-                                    name="items[<?= $i ?>][product_search]"
-                                    list="productList"
-                                    value="<?= e($lineProductLabel) ?>"
-                                    placeholder="Search product name or description"
-                                    autocomplete="off"
-                                    aria-label="Product for line <?= $i + 1 ?>">
+                                <div class="withdrawal-product-autocomplete">
+                                    <input class="form-control table-input product-name" name="items[<?= $i ?>][product_search]" value="<?= e($lineProductLabel) ?>" placeholder="Search product name, HT code, or description" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="productSuggestions<?= $i ?>" aria-label="Product for line <?= $i + 1 ?>">
+                                    <div class="withdrawal-product-suggestions" id="productSuggestions<?= $i ?>" role="listbox" hidden></div>
+                                </div>
 
                                 <input
                                     type="hidden"
@@ -505,12 +499,6 @@ foreach ($values as $item) {
                 </tbody>
             </table>
         </div>
-
-        <datalist id="productList">
-            <?php foreach ($productSearchOptions as $label => $mapping): ?>
-                <option value="<?= e($label) ?>"></option>
-            <?php endforeach; ?>
-        </datalist>
 
         <div class="withdrawal-table-footer">
             <span class="muted text-small" style="margin-left:8px;">
@@ -607,25 +595,107 @@ foreach ($values as $item) {
                 ) ?>
             )
         );
-        const productCatalog = new Map(
-            Object.entries(
-                <?= json_encode(
-                    $productSearchOptions,
-                    JSON_HEX_TAG |
-                        JSON_HEX_APOS |
-                        JSON_HEX_AMP |
-                        JSON_HEX_QUOT |
-                        JSON_UNESCAPED_UNICODE
-                ) ?>
-            )
-        );
+        const productCatalog = <?= json_encode($productSearchOptions, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>;
+        const clientCatalog = new Map(Object.entries(<?= json_encode($clientSearchOptions, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>));
+
+        function productLabel(product) {
+            return product.display_label;
+        }
+
+        function setupProductAutocomplete(root) {
+            const input = root.querySelector('.product-name');
+            const selectedId = root.closest('td').querySelector('.product-id');
+            const list = root.querySelector('.withdrawal-product-suggestions');
+            let matches = [];
+            let activeIndex = -1;
+
+            function closeSuggestions() {
+                list.hidden = true;
+                list.replaceChildren();
+                input.setAttribute('aria-expanded', 'false');
+                input.removeAttribute('aria-activedescendant');
+                activeIndex = -1;
+            }
+
+            function choose(product) {
+                input.value = productLabel(product);
+                selectedId.value = String(product.product_id);
+                closeSuggestions();
+                input.dispatchEvent(new Event('selectionchange', { bubbles: true }));
+            }
+
+            function renderSuggestions() {
+                const query = input.value.trim().toLocaleLowerCase();
+                selectedId.value = '';
+                list.replaceChildren();
+                if (!query) {
+                    closeSuggestions();
+                    return;
+                }
+                matches = productCatalog.filter(product => [product.product_name, product.ht_code, product.ht_description]
+                    .some(value => String(value || '').toLocaleLowerCase().includes(query)))
+                    .slice(0, 12);
+                matches.forEach(product => {
+                    const option = document.createElement('button');
+                    option.type = 'button';
+                    option.className = 'withdrawal-product-suggestion';
+                    option.id = list.id + '-option-' + product.product_id;
+                    option.setAttribute('role', 'option');
+                    option.setAttribute('aria-selected', 'false');
+                    option.textContent = productLabel(product);
+                    option.addEventListener('mousedown', event => event.preventDefault());
+                    option.addEventListener('click', () => choose(product));
+                    list.appendChild(option);
+                });
+                list.hidden = matches.length === 0;
+                input.setAttribute('aria-expanded', matches.length ? 'true' : 'false');
+            }
+
+            function setActive(index) {
+                const options = [...list.querySelectorAll('[role="option"]')];
+                if (!options.length) return;
+                activeIndex = (index + options.length) % options.length;
+                options.forEach((option, optionIndex) => option.setAttribute('aria-selected', optionIndex === activeIndex ? 'true' : 'false'));
+                input.setAttribute('aria-activedescendant', options[activeIndex].id);
+                options[activeIndex].scrollIntoView({ block: 'nearest' });
+            }
+
+            input.addEventListener('input', renderSuggestions);
+            input.addEventListener('keydown', event => {
+                if (event.key === 'ArrowDown' && !list.hidden) {
+                    event.preventDefault();
+                    setActive(activeIndex + 1);
+                } else if (event.key === 'ArrowUp' && !list.hidden) {
+                    event.preventDefault();
+                    setActive(activeIndex < 0 ? matches.length - 1 : activeIndex - 1);
+                } else if (event.key === 'Enter' && !list.hidden && matches.length) {
+                    event.preventDefault();
+                    choose(matches[activeIndex >= 0 ? activeIndex : 0]);
+                } else if (event.key === 'Escape') {
+                    closeSuggestions();
+                }
+            });
+            input.addEventListener('blur', () => window.setTimeout(closeSuggestions, 120));
+        }
+
+        document.querySelectorAll('.withdrawal-product-autocomplete').forEach(setupProductAutocomplete);
 
         function syncProductSelection(row) {
             const productInput = row.querySelector('.product-name');
             const productIdInput = row.querySelector('.product-id');
-            const selected = productCatalog.get(productInput.value.trim());
-            productIdInput.value = selected?.product_id || '';
+            const selected = productCatalog.find(product => String(product.product_id) === productIdInput.value.trim());
+            if (!selected || productLabel(selected) !== productInput.value.trim()) productIdInput.value = '';
         }
+
+        function syncClientSelection() {
+            const clientName = document.querySelector('#clientName');
+            const clientId = document.querySelector('#clientId');
+            clientId.value = clientCatalog.get(clientName.value.trim()) || '';
+        }
+
+        const clientNameInput = document.querySelector('#clientName');
+        clientNameInput.addEventListener('input', syncClientSelection);
+        clientNameInput.addEventListener('change', syncClientSelection);
 
         function updateTotalKg(row) {
             const quantityInput = row.querySelector('.item-quantity');
@@ -709,6 +779,10 @@ foreach ($values as $item) {
                     'aria-label',
                     'Product for line ' + lineNumber
                 );
+                const productInput = row.querySelector('.product-name');
+                const productSuggestions = row.querySelector('.withdrawal-product-suggestions');
+                productSuggestions.id = 'productSuggestions' + index;
+                productInput.setAttribute('aria-controls', productSuggestions.id);
 
                 row.querySelector('.item-quantity').setAttribute(
                     'aria-label',
@@ -759,8 +833,15 @@ foreach ($values as $item) {
             newRow.querySelectorAll('input').forEach((input) => {
                 input.value = '';
             });
+            const suggestions = newRow.querySelector('.withdrawal-product-suggestions');
+            suggestions.replaceChildren();
+            suggestions.hidden = true;
+            const productInput = newRow.querySelector('.product-name');
+            productInput.setAttribute('aria-expanded', 'false');
+            productInput.removeAttribute('aria-activedescendant');
 
             tbody.appendChild(newRow);
+            setupProductAutocomplete(newRow.querySelector('.withdrawal-product-autocomplete'));
 
             renumberRows();
 
@@ -831,6 +912,14 @@ foreach ($values as $item) {
             }
         });
 
+        tbody.addEventListener('selectionchange', event => {
+            if (event.target.classList.contains('product-name')) {
+                const row = event.target.closest('tr');
+                updateTotalKg(row);
+                updateCounters();
+            }
+        });
+
         /*
         |--------------------------------------------------------------------------
         | Keep the item counter current while typing
@@ -871,7 +960,7 @@ foreach ($values as $item) {
                 const productIdInput = row.querySelector('.product-id');
                 const quantityInput = row.querySelector('.item-quantity');
 
-                const productName = productInput.value.trim();
+                    const productName = productInput.value.trim();
                 const productId = productIdInput.value.trim();
                 const quantityValue = quantityInput.value.trim();
                 const quantity = Number(quantityValue);
@@ -888,7 +977,7 @@ foreach ($values as $item) {
                 if (productName !== '') {
                     if (productId === '') {
                         invalidRow = productInput;
-                        errorMessage = 'Choose a product from the suggestions. Search by product name or description.';
+                        errorMessage = 'Choose a product from the suggestions. Search by product name, HT code, or description.';
                         break;
                     }
                     if (
@@ -916,6 +1005,17 @@ foreach ($values as $item) {
                     invalidRow.focus();
                 });
 
+                return;
+            }
+
+            const clientName = document.querySelector('#clientName');
+            const clientId = document.querySelector('#clientId');
+            const selectedClientId = clientCatalog.get(clientName.value.trim());
+            if (!selectedClientId || String(selectedClientId) !== clientId.value) {
+                event.preventDefault();
+                clientName.classList.add('is-invalid');
+                clientName.setAttribute('aria-invalid', 'true');
+                Swal.fire({ icon: 'warning', title: 'Choose a client', text: 'Select an active client from the suggestions before saving.' }).then(() => clientName.focus());
                 return;
             }
 

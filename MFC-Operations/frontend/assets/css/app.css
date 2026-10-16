@@ -1666,6 +1666,10 @@ textarea:focus-visible {
     color: var(--navy);
 }
 
+.withdrawal-form .withdrawal-number:not([readonly]) {
+    background: #fff;
+}
+
 /* Item table header controls */
 
 .withdrawal-items-header {
@@ -1806,6 +1810,76 @@ textarea:focus-visible {
 .withdrawal-form .withdrawal-note textarea {
     min-height: 58px;
     resize: vertical;
+}
+
+.withdrawal-autocomplete {
+    position: relative;
+    min-width: 0;
+}
+
+.withdrawal-product-autocomplete {
+    position: relative;
+    min-width: 0;
+}
+
+.withdrawal-product-suggestions {
+    position: absolute;
+    top: calc(100% + 3px);
+    left: 0;
+    right: 0;
+    z-index: 8;
+    max-height: 240px;
+    overflow-y: auto;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, .16);
+}
+
+.withdrawal-product-suggestions[hidden] {
+    display: none;
+}
+
+.withdrawal-product-suggestion {
+    display: block;
+    width: 100%;
+    padding: 9px 11px;
+    border: 0;
+    border-bottom: 1px solid #edf0f5;
+    background: #fff;
+    color: var(--navy);
+    text-align: left;
+    font-size: 12px;
+}
+
+.withdrawal-product-suggestion:last-child {
+    border-bottom: 0;
+}
+
+.withdrawal-product-suggestion:hover,
+.withdrawal-product-suggestion[aria-selected="true"] {
+    background: #eff6ff;
+}
+
+.withdrawal-register-note {
+    max-width: 250px;
+}
+
+.withdrawal-register-note summary {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.withdrawal-register-note[open] {
+    position: relative;
+    z-index: 2;
+}
+
+.withdrawal-register-note[open] summary {
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 /* Bottom action bar */

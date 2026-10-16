@@ -52,10 +52,16 @@ function log_activity(PDO $pdo, string $action, string $entity, ?int $entityId, 
 function next_withdrawal_no(PDO $pdo): string
 {
     $prefix = date('Y-');
-    $stmt = $pdo->prepare("SELECT withdrawal_no FROM withdrawals WHERE withdrawal_no LIKE ? ORDER BY id DESC LIMIT 1");
+    $stmt = $pdo->prepare('SELECT withdrawal_no FROM withdrawals WHERE withdrawal_no LIKE ?');
     $stmt->execute([$prefix . '%']);
-    $last = $stmt->fetchColumn();
-    $seq = $last ? ((int)substr((string)$last, 5)) + 1 : 101001;
+    $highest = 101000;
+    while (($number = $stmt->fetchColumn()) !== false) {
+        if (preg_match('/^\d{4}-(\d+)$/D', (string)$number, $matches)) {
+            $sequence = (int)$matches[1];
+            if ($sequence > $highest) $highest = $sequence;
+        }
+    }
+    $seq = $highest + 1;
     return $prefix . str_pad((string)$seq, 6, '0', STR_PAD_LEFT);
 }
 function get_sites(PDO $pdo): array
@@ -65,4 +71,13 @@ function get_sites(PDO $pdo): array
 function get_products(PDO $pdo): array
 {
     return $pdo->query('SELECT id,product_name,ht_code,qb_code,ht_description,qb_description,item_code,description,u_m,default_price,kg_per_box,qb_list_id,active FROM products WHERE active=1 ORDER BY product_name')->fetchAll();
+}
+
+function withdrawal_product_label(string $name, ?string $description): string
+{
+    $name = trim($name);
+    $label = $name;
+    $description = trim((string)$description);
+    if ($description !== '' && strcasecmp($name, $description) !== 0) $label .= ' - ' . $description;
+    return $label;
 }

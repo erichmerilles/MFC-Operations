@@ -106,6 +106,7 @@ try {
     $withdrawalIdRaw = $readString($_POST, 'withdrawal_id');
 
     $clientIdRaw = $readString($_POST, 'client_id');
+    $clientName = $readString($_POST, 'client_name');
     $date = $readString($_POST, 'form_date');
 
     $receivedRaw = $readString($_POST, 'time_received');
@@ -113,12 +114,6 @@ try {
 
     $po = $readString($_POST, 'po_no');
     $note = $readString($_POST, 'internal_note');
-
-    if ($no === '') {
-        throw new RuntimeException(
-            'Withdrawal number is required.'
-        );
-    }
 
     if ($withdrawalIdRaw === '') {
         $withdrawalId = null;
@@ -134,6 +129,13 @@ try {
                 'Invalid withdrawal record. Please reopen the withdrawal and try again.'
             );
         }
+    }
+
+    if ($no === '' || mb_strlen($no) > 40) {
+        throw new RuntimeException('Withdrawal number is required and must be 40 characters or fewer.');
+    }
+    if ($withdrawalId === null && !preg_match('/^\d{4}-\d{6,}$/D', $no)) {
+        throw new RuntimeException('Enter a withdrawal number in the YYYY-###### format.');
     }
 
     $clientId = filter_var(
@@ -168,7 +170,7 @@ try {
     */
 
     $clientStmt = $pdo->prepare(
-        'SELECT id
+        'SELECT id, client_name
          FROM clients
          WHERE id = ?
            AND active = 1
@@ -177,9 +179,10 @@ try {
 
     $clientStmt->execute([$clientId]);
 
-    if (!$clientStmt->fetch(PDO::FETCH_ASSOC)) {
+    $client = $clientStmt->fetch(PDO::FETCH_ASSOC);
+    if (!$client || $clientName === '' || !hash_equals((string)$client['client_name'], $clientName)) {
         throw new RuntimeException(
-            'Please select a valid active client.'
+            'Choose an active client from the suggestions. The client name and selection must match.'
         );
     }
 
@@ -290,11 +293,10 @@ try {
             );
         }
 
-        $productName = trim((string) $product['product_name']);
-        $productDescription = trim((string) ($product['ht_description'] ?? ''));
-        $expectedLabel = $productDescription !== '' && strcasecmp($productName, $productDescription) !== 0
-            ? $productName . ' — ' . $productDescription
-            : $productName;
+        $expectedLabel = withdrawal_product_label(
+            (string)$product['product_name'],
+            $product['ht_description'] ?? null
+        );
         if (trim($searchLabel) !== $expectedLabel) {
             throw new RuntimeException(
                 'Choose a product from the suggestions so its name and description match the product catalog.'
