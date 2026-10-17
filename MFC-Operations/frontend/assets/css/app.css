@@ -1,4 +1,4 @@
-﻿:root {
+:root {
     --navy: #14243a;
     --navy2: #1b304c;
     --blue: #2563eb;
@@ -1992,4 +1992,23 @@ textarea:focus-visible {
     min-height: 40px;
     height: auto;
     font-size: 14px;
+}
+
+/* Keep client rows compact while leaving enough room for clear labels. */
+#clientsAccordion .client-accordion-item > .accordion-header .accordion-button {
+    min-height: 50px;
+    padding: 8px 16px;
+}
+
+#clientsAccordion .history-content .table-sm > :not(caption) > * > * {
+    padding: 7px 10px;
+    line-height: 1.35;
+    vertical-align: middle;
+}
+
+@media (max-width: 575.98px) {
+    #clientsAccordion .client-accordion-item > .accordion-header .accordion-button {
+        min-height: 48px;
+        padding: 7px 12px;
+    }
 }

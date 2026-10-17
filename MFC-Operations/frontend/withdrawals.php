@@ -57,7 +57,17 @@ $records = $s->fetchAll();
                 <?php foreach ($records as $r): ?><tr>
                         <td><a class="record-no" href="withdrawal_form.php?withdrawal_no=<?= e($r['withdrawal_no']) ?>"><?= e($r['withdrawal_no']) ?></a></td>
                         <td><?= e($r['client_name']) ?></td>
-                        <td><?php if (($r['internal_note'] ?? '') !== ''): ?><details class="withdrawal-register-note"><summary><?= e($r['internal_note']) ?></summary></details><?php else: ?><span class="muted">&mdash;</span><?php endif; ?></td>
+                        <td>
+                            <?php if (($r['internal_note'] ?? '') !== ''): ?>
+                                <details class="withdrawal-register-note">
+                                    <summary style="color:red; font-weight:bold;">
+                                        <?= e($r['internal_note']) ?>
+                                    </summary>
+                                </details>
+                            <?php else: ?>
+                                <span class="muted">&mdash;</span>
+                            <?php endif; ?>
+                        </td>
                         <td><?= e(date('F d, Y', strtotime($r['form_date']))) ?></td>
                         <td><?= (int)$r['item_count'] ?></td>
                         <td><span class="status-pill <?= e(status_class($r['status'])) ?>"><?= e($r['status']) ?></span></td>

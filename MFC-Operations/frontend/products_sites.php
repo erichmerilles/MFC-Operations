@@ -4,11 +4,9 @@ require_once __DIR__ . '/../backend/config/app.php';
 require_login();
 $pdo = db();
 $manager = can_manage_products_sites($pdo);
-$admin = (($_SESSION['user']['role'] ?? '') === 'Admin');
 $err = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (in_array($_POST['action'] ?? '', ['save_client', 'update_client'], true)) require_admin();
-    else require_products_sites_manager();
+    require_products_sites_manager();
     verify_csrf();
     try {
         $action = (string)($_POST['action'] ?? '');
@@ -86,18 +84,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $id = (int)$pdo->lastInsertId();
                     log_activity($pdo, 'CREATE', 'site', $id, 'Created site ' . $name);
                 }
-            }
-        } elseif (in_array($action, ['save_client', 'update_client'], true)) {
-            $name = trim((string)($_POST['client_name'] ?? ''));
-            $active = ($_POST['active'] ?? '1') === '1' ? 1 : 0;
-            if ($name === '' || mb_strlen($name) > 180) throw new RuntimeException('Enter a client name of 180 characters or fewer.');
-            if ($id) {
-                $pdo->prepare('UPDATE clients SET client_name=?,active=? WHERE id=?')->execute([$name, $active, $id]);
-                log_activity($pdo, 'UPDATE', 'client', $id, 'Updated client ' . $name);
-            } else {
-                $pdo->prepare('INSERT INTO clients(client_name,active) VALUES(?,1)')->execute([$name]);
-                $id = (int)$pdo->lastInsertId();
-                log_activity($pdo, 'CREATE', 'client', $id, 'Created client ' . $name);
             }
         } else throw new RuntimeException('Unsupported action.');
         flash('success', 'Changes saved.');
@@ -316,41 +302,6 @@ if ($manager && $reviewProducts): ?><div class="alert alert-warning" role="statu
         </div>
     </div>
 <?php endif; ?>
-
-<?php if ($admin): ?><section class="panel catalog-panel catalog-clients mt-4">
-        <div class="catalog-heading">
-            <div>
-                <h3>Clients</h3>
-                <p>Administrator-only client maintenance.</p>
-            </div>
-        </div>
-        <div class="catalog-client-add">
-            <form method="post" class="d-flex gap-2"><input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="save_client"><label class="visually-hidden" for="newClientName">New client name</label><input class="form-control" id="newClientName" name="client_name" placeholder="New client name" required><button class="btn btn-outline-primary" type="submit">Add Client</button></form>
-        </div>
-        <div class="table-responsive">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Client Name</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($pdo->query('SELECT id,client_name,active FROM clients ORDER BY client_name')->fetchAll() as $c): ?><tr>
-                            <td>
-                                <form id="client-<?= (int)$c['id'] ?>" method="post"><input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="update_client"><input type="hidden" name="id" value="<?= (int)$c['id'] ?>"></form><input class="form-control" form="client-<?= (int)$c['id'] ?>" name="client_name" value="<?= e($c['client_name']) ?>" required>
-                            </td>
-                            <td><select class="form-select" form="client-<?= (int)$c['id'] ?>" name="active">
-                                    <option value="1" <?= $c['active'] ? 'selected' : '' ?>>Active</option>
-                                    <option value="0" <?= !$c['active'] ? 'selected' : '' ?>>Inactive</option>
-                                </select></td>
-                            <td><button class="btn btn-light btn-sm" form="client-<?= (int)$c['id'] ?>">Save</button></td>
-                        </tr><?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-    </section><?php endif; ?>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
