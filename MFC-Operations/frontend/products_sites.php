@@ -29,6 +29,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $qd = trim((string)($_POST['qb_description'] ?? ''));
                 $um = trim((string)($_POST['u_m'] ?? ''));
                 $price = trim((string)($_POST['default_price'] ?? ''));
+                if ($price !== '') {
+                    $validPrice = preg_match('/^\d+(?:\.\d{1,2})?$/D', $price) || preg_match('/^\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?$/D', $price);
+                    if (!$validPrice) throw new RuntimeException('Price must be a non-negative amount with valid comma grouping and up to two decimal places.');
+                    $price = str_replace(',', '', $price);
+                    if (strlen(explode('.', $price, 2)[0]) > 10) throw new RuntimeException('Price exceeds the supported amount.');
+                }
                 $kg = trim((string)($_POST['kg_per_box'] ?? ''));
                 $active = ($_POST['active'] ?? '1') === '1' ? 1 : 0;
                 if (!$id && (!$name || !$ht || !$qb || !$hd || !$qd)) throw new RuntimeException('New products need a name, both codes, and both descriptions.');
@@ -147,7 +153,7 @@ if ($manager && $reviewProducts): ?><div class="alert alert-warning" role="statu
     <div class="table-responsive catalog-table-wrap" tabindex="0" aria-label="Product master table">
         <table class="table catalog-table">
             <thead>
-                <tr><?php foreach (['Product Name', 'HT Code', 'QB Code', 'HT Description', 'QB Description', 'U/M', 'Price', 'KG/Box'] as $heading): ?><th scope="col"><?= e($heading) ?></th><?php endforeach; ?><?php if ($manager): ?><th scope="col">Status</th>
+                <tr><?php foreach (['Product Name', 'HT Code', 'QB Code', 'HT Description', 'QB Description', 'U/M', 'Price (PHP)', 'KG/Box'] as $heading): ?><th scope="col"><?= e($heading) ?></th><?php endforeach; ?><?php if ($manager): ?><th scope="col">Status</th>
                         <th scope="col">Actions</th><?php endif; ?>
                 </tr>
             </thead>
@@ -164,7 +170,7 @@ if ($manager && $reviewProducts): ?><div class="alert alert-warning" role="statu
                         <td><span class="catalog-description" title="<?= e($p['ht_description'] ?? '') ?>" aria-label="HT Description: <?= e($p['ht_description'] ?? 'Not set') ?>"><?= e($p['ht_description'] ?? '—') ?></span></td>
                         <td><span class="catalog-description" title="<?= e($p['qb_description'] ?? '') ?>" aria-label="QB Description: <?= e($p['qb_description'] ?? 'Not set') ?>"><?= e($p['qb_description'] ?? '—') ?></span></td>
                         <td><?= e($p['u_m'] ?? '—') ?></td>
-                        <td class="catalog-number"><?= $p['default_price'] !== null ? 'PHP ' . number_format((float)$p['default_price'], 2) : '—' ?></td>
+                        <td class="catalog-number"><?= $p['default_price'] !== null ? '₱' . number_format((float)$p['default_price'], 2, '.', ',') : '—' ?></td>
                         <td class="catalog-number"><?= $p['kg_per_box'] !== null ? number_format((float)$p['kg_per_box'], 3) : '—' ?></td>
                         <?php if ($manager): ?>
                             <td><span class="status-pill <?= $inactive ? 'status-muted' : 'status-success' ?>"><?= $inactive ? 'Inactive' : 'Active' ?></span><?php if ($missing): ?><span class="catalog-missing-note">Mapping incomplete</span><?php endif; ?></td>
@@ -265,7 +271,7 @@ if ($manager && $reviewProducts): ?><div class="alert alert-warning" role="statu
                             <div class="row g-3">
                                 <div class="col-md-4"><label class="form-label" for="productUm">U/M</label><input class="form-control" id="productUm" name="u_m" maxlength="40" value="<?= e($postedProduct['u_m'] ?? '') ?>" placeholder="e.g. BOX"></div>
                                 <div class="col-md-4"><label class="form-label" for="productPrice">Price</label>
-                                    <div class="input-group"><span class="input-group-text">PHP</span><input class="form-control" id="productPrice" name="default_price" type="number" min="0" step="0.01" value="<?= e($postedProduct['default_price'] ?? '') ?>"></div>
+                                    <div class="input-group"><span class="input-group-text">&#8369;</span><input class="form-control currency-input" id="productPrice" name="default_price" type="text" inputmode="decimal" value="<?= e($postedProduct['default_price'] ?? '') ?>"></div>
                                 </div>
                                 <div class="col-md-4"><label class="form-label" for="productKg">KG/Box</label><input class="form-control" id="productKg" name="kg_per_box" type="number" min="0" step="0.001" value="<?= e($postedProduct['kg_per_box'] ?? '') ?>"></div>
                                 <div class="col-md-5"><label class="form-label" for="productActive">Status</label><select class="form-select" id="productActive" name="active">
@@ -321,6 +327,7 @@ if ($manager && $reviewProducts): ?><div class="alert alert-warning" role="statu
             productForm.elements.qb_description.value = editing ? data.qbDescription : '';
             productForm.elements.u_m.value = editing ? data.um : '';
             productForm.elements.default_price.value = editing ? data.price : '';
+            window.formatCurrencyInput(productForm.elements.default_price);
             productForm.elements.kg_per_box.value = editing ? data.kg : '';
             productForm.elements.active.value = editing ? data.active : '1';
             productModal.querySelector('#productModalTitle').textContent = editing ? 'Edit Product' : 'Add Product';

@@ -38,7 +38,7 @@ withdrawal-qb/
 
 ### Upgrade an existing database
 
-Back up `withdrawal_qb` first. For an existing database, apply `20261015_invoice_number.sql` if it has not already been applied, then follow `backend/database/migrations/20261015_product_site_permissions.sql` in phpMyAdmin with `withdrawal_qb` selected. Apply `20261019_whole_number_quantities.sql` after reviewing its preflight behavior. It stops without changing quantity data if fractional historical quantities exist; reconcile those rows against authoritative records before rerunning. Apply `20261019_invoice_memo.sql` once to add the nullable invoice memo field. Do not import `schema.sql` over an existing database.
+Back up `withdrawal_qb` first. For an existing database, apply `20261015_invoice_number.sql` if it has not already been applied, then follow `backend/database/migrations/20261015_product_site_permissions.sql` in phpMyAdmin with `withdrawal_qb` selected. Apply `20261019_whole_number_quantities.sql` after reviewing its preflight behavior. It stops without changing quantity data if fractional historical quantities exist; reconcile those rows against authoritative records before rerunning. Apply `20261019_invoice_memo.sql` once to add the nullable invoice memo field. Apply `20261019_sales_order_preparation.sql` once to add separate local Sales Order draft tables. Do not import `schema.sql` over an existing database.
 
 The product/site migration is intentionally staged:
 
@@ -60,7 +60,9 @@ The migration file includes the review queries and commented final DDL. Keep a c
 
 ## Important scope boundary
 
-QuickBooks Web Connector connectivity is a **required Phase 2 acceptance item but is not yet implemented or verified in this package**. The remaining integration work must verify Web Connector authentication, authorization to the correct QuickBooks company file, qbXML request/response communication, a test invoice, successful and rejected responses, duplicate/uncertain-result handling, and documented customer/item mappings in the real QuickBooks Enterprise 24.0 environment. Do not enable invoice posting or claim success until these tests pass.
+QuickBooks Web Connector connectivity is a **required Phase 2 acceptance item but is not yet implemented or verified in this package**. The remaining integration work must verify Web Connector authentication, authorization to the correct QuickBooks company file, qbXML request/response communication, test transactions, successful and rejected responses, duplicate/uncertain-result handling, and documented customer/item mappings in the real QuickBooks Enterprise 24.0 environment. Do not enable transaction posting or claim success until these tests pass.
+
+Sales Order Preparation is a separate local draft workflow. It uses the additive `20261019_sales_order_preparation.sql` migration and does not modify invoice records or submit anything to QuickBooks. CLASS, STATUS, FULFILLED QUANTITY, and TAX are retained as local preparation values pending verified company-file mapping.
 
 Invoice drafts retain local site, lot, item code, product identity/description, unit, price, amount, expiration, and local tax choice. These values are not proof of QuickBooks mappings. In particular, SITE, LOT NUMBER, ITEM CODE, U/M, EXPIRATION DATE, and the local `Non`/`Tax`/`Exempt` values need company-file field/configuration decisions and qbXML verification before posting. Customer and product `qb_list_id` values must also be populated from verified QuickBooks records. Posting remains disabled until a Web Connector service and explicit supported mappings are implemented.
 

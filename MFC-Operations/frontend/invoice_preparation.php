@@ -265,8 +265,8 @@ foreach ($lines as $ln) {
                         <th>ITEM CODE</th>
                         <th>DESCRIPTION</th>
                         <th>U/M</th>
-                        <th>PRICE EACH</th>
-                        <th>AMOUNT</th>
+                        <th>PRICE EACH (PHP)</th>
+                        <th>AMOUNT (PHP)</th>
                         <th>EXPIRATION DATE</th>
                         <th>TAX</th>
                     </tr>
@@ -337,12 +337,11 @@ foreach ($lines as $ln) {
 
                             <td>
                                 <input
-                                    class="form-control table-input invoice-price"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
+                                    class="form-control table-input invoice-price currency-input"
+                                    type="text"
+                                    inputmode="decimal"
                                     name="items[<?= $i ?>][price_each]"
-                                    value="<?= e($ln['price_each']) ?>"
+                                    value="<?= number_format((float) $ln['price_each'], 2, '.', ',') ?>"
                                     required
                                     <?= $locked ? 'readonly' : '' ?>>
                             </td>
@@ -350,7 +349,7 @@ foreach ($lines as $ln) {
                             <td>
                                 <input
                                     class="form-control table-input amount"
-                                    value="<?= number_format((float) $ln['quantity'] * (float) $ln['price_each'], 2, '.', '') ?>"
+                                    value="<?= number_format((float) $ln['quantity'] * (float) $ln['price_each'], 2, '.', ',') ?>"
                                     readonly>
                             </td>
 
@@ -456,13 +455,13 @@ foreach ($lines as $ln) {
             row.querySelector("input[name$='[product_name]']").value = opt.dataset.name || '';
             row.querySelector("input[name$='[u_m]']").value = opt.dataset.um || '';
             const price = row.querySelector('.invoice-price');
-            if (!price.value || Number(price.value) === 0) price.value = Number(opt.dataset.price || 0).toFixed(2);
+            if (!price.value || window.parseMoneyValue(price.value) === 0) price.value = window.formatMoneyValue(opt.dataset.price || 0);
             updateAmount(row);
         });
 
         function updateAmount(row) {
-            row.querySelector('.amount').value = (Number(row.querySelector('.invoice-qty').value || 0) * Number(row.querySelector('.invoice-price').value || 0)).toFixed(2);
-            document.querySelector('[data-invoice-total]').textContent = [...tbody.querySelectorAll('.amount')].reduce((sum, input) => sum + Number(input.value || 0), 0).toLocaleString('en-PH', {
+            row.querySelector('.amount').value = window.formatMoneyValue(Number(row.querySelector('.invoice-qty').value || 0) * window.parseMoneyValue(row.querySelector('.invoice-price').value || 0));
+            document.querySelector('[data-invoice-total]').textContent = [...tbody.querySelectorAll('.amount')].reduce((sum, input) => sum + window.parseMoneyValue(input.value), 0).toLocaleString('en-PH', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             });

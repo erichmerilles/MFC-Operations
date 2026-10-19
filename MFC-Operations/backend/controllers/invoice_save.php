@@ -53,7 +53,11 @@ try {
         if (!$productId && $qtyRaw === '' && $priceRaw === '') continue;
         if (!$productId) throw new RuntimeException('Select a valid product in DESCRIPTION for every invoice line.');
         if (!preg_match('/^\d{1,9}$/D', $qtyRaw) || (float)$qtyRaw <= 0) throw new RuntimeException('Quantity must be a positive whole number.');
-        if (!preg_match('/^(?:\d{1,10})(?:\.\d{1,2})?$/D', $priceRaw)) throw new RuntimeException('PRICE EACH must be a non-negative amount with up to two decimal places.');
+        $plainPrice = preg_match('/^\d{1,10}(?:\.\d{1,2})?$/D', $priceRaw);
+        $groupedPrice = preg_match('/^\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?$/D', $priceRaw);
+        if (!$plainPrice && !$groupedPrice) throw new RuntimeException('PRICE EACH must be a non-negative amount with valid comma grouping and up to two decimal places.');
+        $priceRaw = str_replace(',', '', $priceRaw);
+        if (strlen(explode('.', $priceRaw, 2)[0]) > 10) throw new RuntimeException('PRICE EACH exceeds the supported amount.');
         $products->execute([$productId]); $product = $products->fetch();
         if (!$product) throw new RuntimeException('A selected product is inactive or invalid.');
         $submittedCode = trim((string)($it['item_code'] ?? ''));

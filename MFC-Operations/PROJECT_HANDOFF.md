@@ -102,11 +102,15 @@ A withdrawal is the original operational record. Invoice-only edits must not sil
 
 Invoice drafts also have a local `invoices.memo` field. `frontend/invoice_preparation.php` loads it with the invoice header and posts edits to `backend/controllers/invoice_save.php`; the controller validates and saves it in the existing invoice update transaction. Existing installations need `20261019_invoice_memo.sql`. This memo is not synchronized to QuickBooks.
 
+Displayed monetary values use PHP peso formatting with two decimals and thousands separators. Editable price fields show grouped values when not focused and accept correctly grouped comma input; database values remain numeric.
+
 The invoice line table in `frontend/invoice_preparation.php` uses fixed pixel widths for compact fields and lets Description take the remaining space, styled in `frontend/assets/css/app.css`. The shared header adds an asset modification-time query to the CSS URL so updated styles are fetched. Product selection displays only `products.qb_description`. QB Code remains in the item-code field and product identity/mappings remain in their existing values. Opening a draft does not update saved invoice descriptions.
 
 The updated invoice page passed `php -l`. A scan of the live product master found no QB descriptions containing code or mapping annotations; those labels were added by the product option markup. No automated test suite was found, and the revised layout has not been visually checked in a browser.
 
 **Do not implement automatic QuickBooks posting, enable a send action, or claim successful QB integration unless that is explicitly requested and all integration prerequisites are verified.**
+
+Sales Order Preparation is implemented as a separate local-only workflow in `frontend/sales_order_preparation.php` with saves handled by `backend/controllers/sales_order_save.php`. It uses separate `sales_orders` and `sales_order_items` tables from `20261019_sales_order_preparation.sql`, links each draft to its source withdrawal, and preserves invoice records unchanged. Apply the migration before using the screen. S.O. NO. is manually entered and unique; customer/date/PO default from the withdrawal; ITEM is selected from Product Master and its current `qb_list_id` is snapshotted when present; DESCRIPTION defaults to the stored QB product description; SITE is selected from active sites; ORDERED defaults to the whole withdrawal quantity; U/M and RATE default from Product Master; AMOUNT is recalculated from ORDERED × RATE. LOT NUMBER, CLASS, STATUS, FULFILLED QUANTITY, EXPIRATION DATE, TAX, and Memo remain optional local values. The app has no live QuickBooks Sales Order submission or verified field mapping; do not queue or send these drafts.
 
 ### C. Client invoice history workflow (recent update)
 

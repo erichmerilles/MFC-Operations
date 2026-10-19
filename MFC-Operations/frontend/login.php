@@ -29,13 +29,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <head>
     <meta charset="utf-8">
+    <link rel="icon" href="assets/images/MFC-Icon.png" type="image/png">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Sign in | <?= e(APP_NAME) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
 <body style="background:url('assets/images/.png') no-repeat center center fixed; 
-             background-size:cover;"
+             background-size:contain;"
     class="d-flex align-items-center justify-content-center vh-100">
     <main class="container" style="max-width:480px">
         <div class="card shadow-sm">

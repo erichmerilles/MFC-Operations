@@ -89,6 +89,10 @@ $records = $s->fetchAll();
                                     href="invoice_preparation.php?withdrawal_no=<?= e($r['withdrawal_no']) ?>">
                                     Invoice
                                 </a>
+                                <a class="btn btn-outline-primary btn-sm"
+                                    href="sales_order_preparation.php?withdrawal_no=<?= e($r['withdrawal_no']) ?>">
+                                    Sales Order
+                                </a>
                             </div>
                         </td>
                     </tr><?php endforeach; ?>

@@ -1,11 +1,31 @@
-﻿document.addEventListener('input', function (ev) {
+window.parseMoneyValue = function (value) {
+    const parsed = Number(String(value ?? '').replace(/,/g, '').trim());
+    return Number.isFinite(parsed) ? parsed : 0;
+};
+window.formatMoneyValue = function (value) {
+    return window.parseMoneyValue(value).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+window.formatCurrencyInput = function (input) {
+    const raw = String(input.value ?? '').replace(/,/g, '').trim();
+    if (raw === '') { input.value = ''; return; }
+    if (!/^\d+(?:\.\d{0,2})?$/.test(raw)) return;
+    input.value = window.formatMoneyValue(raw);
+};
+document.addEventListener('focusin', function (ev) {
+    if (ev.target.matches('.currency-input')) ev.target.value = String(ev.target.value).replace(/,/g, '');
+});
+document.addEventListener('focusout', function (ev) {
+    if (ev.target.matches('.currency-input')) window.formatCurrencyInput(ev.target);
+});
+document.addEventListener('input', function (ev) {
     if (!ev.target.matches('.invoice-qty,.invoice-price')) return;
-    const row = ev.target.closest('tr'), q = parseFloat(row.querySelector('.invoice-qty')?.value || 0), p = parseFloat(row.querySelector('.invoice-price')?.value || 0);
-    const amount = row.querySelector('.amount'); if (amount) amount.value = (q * p).toFixed(2);
-    let subtotal = 0; document.querySelectorAll('.amount').forEach(a => subtotal += parseFloat(a.value || 0));
-    const total = document.querySelector('[data-invoice-total]'); if (total) total.textContent = subtotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const row = ev.target.closest('tr'), q = Number(row.querySelector('.invoice-qty')?.value || 0), p = window.parseMoneyValue(row.querySelector('.invoice-price')?.value || 0);
+    const amount = row.querySelector('.amount'); if (amount) amount.value = window.formatMoneyValue(q * p);
+    let subtotal = 0; document.querySelectorAll('.amount').forEach(a => subtotal += window.parseMoneyValue(a.value));
+    const total = document.querySelector('[data-invoice-total]'); if (total) total.textContent = window.formatMoneyValue(subtotal);
 });
 document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.currency-input').forEach(window.formatCurrencyInput);
     const sidebar = document.getElementById('appSidebar'), toggle = document.querySelector('.mobile-nav-toggle'), backdrop = document.querySelector('.sidebar-backdrop');
     function setNavigationOpen(open) {
         sidebar?.classList.toggle('is-open', open);
