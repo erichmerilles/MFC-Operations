@@ -209,6 +209,16 @@ foreach ($lines as $ln) {
                         value="<?= e($inv['po_no'] ?? '') ?>"
                         <?= $locked ? 'readonly' : '' ?>>
                 </div>
+
+                <div class="col-md-3">
+                    <label class="form-label" for="invoiceMemo">Memo</label>
+                    <textarea
+                        class="form-control"
+                        id="invoiceMemo"
+                        name="memo"
+                        rows="1"
+                        <?= $locked ? 'readonly' : '' ?>><?= e($inv['memo'] ?? '') ?></textarea>
+                </div>
             </div>
         </div>
     </section>
@@ -234,7 +244,19 @@ foreach ($lines as $ln) {
         </div>
 
         <div class="table-responsive">
-            <table class="table" id="invoiceLines" data-pagination-exempt>
+            <table class="table invoice-lines-table" id="invoiceLines" data-pagination-exempt>
+                <colgroup>
+                    <col class="invoice-col-site">
+                    <col class="invoice-col-quantity">
+                    <col class="invoice-col-lot">
+                    <col class="invoice-col-item-code">
+                    <col class="invoice-col-description">
+                    <col class="invoice-col-unit">
+                    <col class="invoice-col-price">
+                    <col class="invoice-col-amount">
+                    <col class="invoice-col-expiration">
+                    <col class="invoice-col-tax">
+                </colgroup>
                 <thead>
                     <tr>
                         <th>SITE</th>
@@ -275,8 +297,8 @@ foreach ($lines as $ln) {
                                 <input
                                     class="form-control table-input invoice-qty"
                                     type="number"
-                                    min="0.001"
-                                    step="0.001"
+                                    min="1"
+                                    step="1"
                                     name="items[<?= $i ?>][quantity]"
                                     value="<?= e($ln['quantity']) ?>"
                                     required
@@ -285,7 +307,7 @@ foreach ($lines as $ln) {
 
                             <td>
                                 <input
-                                    class="form-control table-input"
+                                    class="form-control table-input invoice-lot"
                                     name="items[<?= $i ?>][lot_number]"
                                     value="<?= e($ln['lot_number'] ?? '') ?>"
                                     <?= $locked ? 'readonly' : '' ?>>
@@ -293,21 +315,21 @@ foreach ($lines as $ln) {
 
                             <td>
                                 <input
-                                    class="form-control table-input"
+                                    class="form-control table-input invoice-item-code"
                                     name="items[<?= $i ?>][item_code]"
                                     value="<?= e($ln['item_code'] ?? '') ?>"
                                     <?= $locked ? 'readonly' : '' ?>>
                             </td>
 
                             <td>
-                                <div class="d-flex gap-1"><select class="form-select table-input product-select" name="items[<?= $i ?>][product_id]" required <?= $locked ? 'disabled' : '' ?>>
-                                        <option value="">Select QB Code</option><?php foreach ($products as $pr): ?><option value="<?= (int)$pr['id'] ?>" data-code="<?= e($pr['qb_code'] ?? '') ?>" data-desc="<?= e($pr['qb_description'] ?? '') ?>" data-um="<?= e($pr['u_m'] ?? '') ?>" data-price="<?= e($pr['default_price'] ?? '') ?>" <?= (int)$ln['product_id'] === (int)$pr['id'] ? 'selected' : '' ?>><?= e($pr['qb_code'] ?? '') ?> — <?= e($pr['qb_description'] ?? '') ?><?= !$pr['qb_list_id'] ? ' — QuickBooks item mapping required' : '' ?></option><?php endforeach; ?>
+                                <div class="d-flex gap-1 invoice-description-picker"><select class="form-select table-input product-select" name="items[<?= $i ?>][product_id]" required aria-label="Product description" <?= $locked ? 'disabled' : '' ?>>
+                                        <option value="">Select description</option><?php foreach ($products as $pr): ?><option value="<?= (int)$pr['id'] ?>" data-code="<?= e($pr['qb_code'] ?? '') ?>" data-desc="<?= e($pr['qb_description'] ?? '') ?>" data-name="<?= e($pr['product_name'] ?? '') ?>" data-um="<?= e($pr['u_m'] ?? '') ?>" data-price="<?= e($pr['default_price'] ?? '') ?>" <?= (int)$ln['product_id'] === (int)$pr['id'] ? 'selected' : '' ?>><?= e($pr['qb_description'] ?? '') ?></option><?php endforeach; ?>
                                     </select><?php if (!$locked): ?><button type="button" class="btn btn-sm btn-outline-danger remove-invoice-line" title="Remove line" aria-label="Remove invoice line">×</button><?php endif; ?></div><input type="hidden" name="items[<?= $i ?>][description]" value="<?= e($ln['description'] ?? '') ?>"><input type="hidden" name="items[<?= $i ?>][product_name]" value="<?= e($ln['product_name']) ?>">
                             </td>
 
                             <td>
                                 <input
-                                    class="form-control table-input"
+                                    class="form-control table-input invoice-unit"
                                     name="items[<?= $i ?>][u_m]"
                                     value="<?= e($ln['u_m'] ?? '') ?>"
                                     <?= $locked ? 'readonly' : '' ?>>
@@ -333,10 +355,10 @@ foreach ($lines as $ln) {
                             </td>
 
                             <td>
-                                <input class="form-control table-input" type="date" name="items[<?= $i ?>][expiration_date]" value="<?= e($ln['expiration_date'] ?? '') ?>" <?= $locked ? 'readonly' : '' ?>>
+                                <input class="form-control table-input invoice-expiration" type="date" name="items[<?= $i ?>][expiration_date]" value="<?= e($ln['expiration_date'] ?? '') ?>" <?= $locked ? 'readonly' : '' ?>>
                             </td>
                             <td>
-                                <select class="form-select table-input" name="items[<?= $i ?>][tax_code]" required <?= $locked ? 'disabled' : '' ?>>
+                                <select class="form-select table-input invoice-tax" name="items[<?= $i ?>][tax_code]" required <?= $locked ? 'disabled' : '' ?>>
                                     <?php foreach (['Non', 'Tax', 'Exempt'] as $tax): ?>
                                         <option <?= ($ln['tax_code'] === $tax ? 'selected' : '') ?>>
                                             <?= e($tax) ?>
@@ -431,7 +453,7 @@ foreach ($lines as $ln) {
             if (!opt?.value) return;
             row.querySelector("input[name$='[item_code]']").value = opt.dataset.code || '';
             row.querySelector("input[name$='[description]']").value = opt.dataset.desc || '';
-            row.querySelector("input[name$='[product_name]']").value = opt.textContent.trim();
+            row.querySelector("input[name$='[product_name]']").value = opt.dataset.name || '';
             row.querySelector("input[name$='[u_m]']").value = opt.dataset.um || '';
             const price = row.querySelector('.invoice-price');
             if (!price.value || Number(price.value) === 0) price.value = Number(opt.dataset.price || 0).toFixed(2);

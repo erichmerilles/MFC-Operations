@@ -32,6 +32,13 @@ try {
     if (!$validDate($date)) throw new RuntimeException('Enter a valid invoice date.');
     $po = trim(is_string($_POST['po_no'] ?? null) ? $_POST['po_no'] : '');
     if (mb_strlen($po) > 100) throw new RuntimeException('PO # must be 100 characters or fewer.');
+    $memo = $inv['memo'] ?? null;
+    if (array_key_exists('memo', $_POST)) {
+        if (!is_string($_POST['memo'])) throw new RuntimeException('Memo must be text.');
+        $memo = trim($_POST['memo']);
+        if (strlen($memo) > 65535) throw new RuntimeException('Memo is too long.');
+        if ($memo === '') $memo = null;
+    }
     $raw = $_POST['items'] ?? [];
     if (!is_array($raw)) throw new RuntimeException('Invoice lines are invalid.');
     $products = $pdo->prepare('SELECT id,product_name,qb_code,qb_description,item_code,description,u_m,qb_list_id FROM products WHERE id=? AND active=1');
@@ -45,7 +52,7 @@ try {
         $qtyRaw = trim((string)($it['quantity'] ?? '')); $priceRaw = trim((string)($it['price_each'] ?? ''));
         if (!$productId && $qtyRaw === '' && $priceRaw === '') continue;
         if (!$productId) throw new RuntimeException('Select a valid product in DESCRIPTION for every invoice line.');
-        if (!preg_match('/^(?:\d{1,9})(?:\.\d{1,3})?$/D', $qtyRaw) || (float)$qtyRaw <= 0) throw new RuntimeException('Quantity must be positive and may have up to three decimal places.');
+        if (!preg_match('/^\d{1,9}$/D', $qtyRaw) || (float)$qtyRaw <= 0) throw new RuntimeException('Quantity must be a positive whole number.');
         if (!preg_match('/^(?:\d{1,10})(?:\.\d{1,2})?$/D', $priceRaw)) throw new RuntimeException('PRICE EACH must be a non-negative amount with up to two decimal places.');
         $products->execute([$productId]); $product = $products->fetch();
         if (!$product) throw new RuntimeException('A selected product is inactive or invalid.');
@@ -59,7 +66,7 @@ try {
         if (!in_array($tax, ['Non', 'Tax', 'Exempt'], true)) throw new RuntimeException('Select a valid TAX value.');
         $expiry = trim((string)($it['expiration_date'] ?? ''));
         if ($expiry !== '' && !$validDate($expiry)) throw new RuntimeException('Enter a valid EXPIRATION DATE or leave it blank.');
-        $qty = (float)$qtyRaw; $price = (float)$priceRaw;
+        $qty = (int)$qtyRaw; $price = (float)$priceRaw;
         $source = ($it['source_type'] ?? '') === 'ADDITIONAL' ? 'ADDITIONAL' : 'WITHDRAWAL';
         $wi = filter_var($it['withdrawal_item_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         if ($source === 'WITHDRAWAL' && $wi) {
@@ -71,7 +78,7 @@ try {
         $valid[] = ['product'=>$product,'site'=>$siteId,'qty'=>$qty,'price'=>$price,'tax'=>$tax,'expiry'=>$expiry ?: null,'lot'=>trim((string)($it['lot_number'] ?? '')),'code'=>trim((string)($it['item_code'] ?? '')),'desc'=>trim((string)($it['description'] ?? '')),'um'=>trim((string)($it['u_m'] ?? '')),'source'=>$source,'wi'=>$source === 'WITHDRAWAL' && $wi ? $wi : null];
     }
     if (!$valid) throw new RuntimeException('Add at least one valid invoice line.');
-    $pdo->prepare('UPDATE invoices SET customer_id=?,invoice_number=?,invoice_date=?,po_no=?,status="Draft",updated_by=? WHERE id=?')->execute([$customerId,$invoiceNumber,$date,$po ?: null,$_SESSION['user']['id'],$invoiceId]);
+    $pdo->prepare('UPDATE invoices SET customer_id=?,invoice_number=?,invoice_date=?,po_no=?,memo=?,status="Draft",updated_by=? WHERE id=?')->execute([$customerId,$invoiceNumber,$date,$po ?: null,$memo,$_SESSION['user']['id'],$invoiceId]);
     $pdo->prepare('DELETE FROM invoice_items WHERE invoice_id=?')->execute([$invoiceId]);
     $ins = $pdo->prepare('INSERT INTO invoice_items(invoice_id,withdrawal_item_id,source_type,product_id,site_id,product_name,quantity,lot_number,item_code,description,u_m,price_each,amount,tax_code,expiration_date,created_by,updated_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
     foreach ($valid as $line) {

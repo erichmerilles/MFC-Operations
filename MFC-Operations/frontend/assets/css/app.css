@@ -1,4 +1,4 @@
-:root {
+﻿:root {
     --navy: #14243a;
     --navy2: #1b304c;
     --blue: #2563eb;
@@ -1617,6 +1617,74 @@ textarea:focus-visible {
 /* Avoid extra space around the table */
 .table {
     margin-bottom: 0;
+}
+
+/* Invoice lines use compact, content-weighted columns on desktop. */
+#invoiceLines {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+}
+
+#invoiceLines .invoice-col-site { width: 130px; }
+#invoiceLines .invoice-col-quantity { width: 58px; }
+#invoiceLines .invoice-col-lot { width: 76px; }
+#invoiceLines .invoice-col-item-code { width: 125px; }
+#invoiceLines .invoice-col-description { width: auto; }
+#invoiceLines .invoice-col-unit { width: 70px; }
+#invoiceLines .invoice-col-price { width: 70px; }
+#invoiceLines .invoice-col-amount { width: 82px; }
+#invoiceLines .invoice-col-expiration { width: 115px; }
+#invoiceLines .invoice-col-tax { width: 68px; }
+
+#invoiceLines thead th {
+    padding: 8px 5px;
+    font-size: 9px;
+    letter-spacing: .2px;
+    line-height: 1.2;
+    white-space: normal;
+}
+
+#invoiceLines tbody td {
+    padding: 5px;
+}
+
+#invoiceLines .table-input {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    padding-right: 4px;
+    padding-left: 4px;
+    font-size: 11px;
+}
+
+#invoiceLines .invoice-description-picker {
+    width: 100%;
+    min-width: 0;
+}
+
+#invoiceLines .product-select {
+    flex: 1 1 0;
+    width: 0;
+    min-width: 0;
+}
+
+#invoiceLines .remove-invoice-line {
+    flex: 0 0 26px;
+    width: 26px;
+    padding: 3px;
+}
+
+#invoiceLines .invoice-expiration {
+    padding-right: 2px;
+    padding-left: 2px;
+    font-size: 10px;
+}
+
+@media (max-width: 760px) {
+    #invoiceLines {
+        min-width: 960px;
+    }
 }
 
 /* =========================================================

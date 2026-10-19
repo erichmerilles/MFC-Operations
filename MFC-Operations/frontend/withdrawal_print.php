@@ -614,7 +614,7 @@ $itemCount = count($items);
                     $kgText = '';
 
                     if ($item !== null) {
-                        $qtyText = print_qty($item['quantity'] ?? null);
+                        $qtyText = is_numeric($item['quantity'] ?? null) ? number_format((float) $item['quantity'], 0, '.', ',') : '';
 
                         $unit = trim((string) ($item['u_m'] ?? ''));
 

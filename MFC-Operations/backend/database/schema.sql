@@ -32,14 +32,14 @@ CREATE TABLE IF NOT EXISTS withdrawals (
 ) ENGINE=InnoDB;
 CREATE TABLE IF NOT EXISTS withdrawal_items (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, withdrawal_id BIGINT UNSIGNED NOT NULL, line_no SMALLINT UNSIGNED NOT NULL, product_id BIGINT UNSIGNED NULL,
- product_name VARCHAR(255) NOT NULL, ht_code VARCHAR(100) NULL, ht_description VARCHAR(255) NULL, quantity DECIMAL(12,3) NOT NULL, remarks TEXT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ product_name VARCHAR(255) NOT NULL, ht_code VARCHAR(100) NULL, ht_description VARCHAR(255) NULL, quantity BIGINT UNSIGNED NOT NULL, remarks TEXT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
  UNIQUE KEY uq_withdrawal_line(withdrawal_id,line_no), INDEX idx_wi_product(product_id),
  CONSTRAINT fk_wi_withdrawal FOREIGN KEY(withdrawal_id) REFERENCES withdrawals(id) ON DELETE CASCADE,
  CONSTRAINT fk_wi_product FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 CREATE TABLE IF NOT EXISTS invoices (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, withdrawal_id BIGINT UNSIGNED NOT NULL UNIQUE, customer_id BIGINT UNSIGNED NOT NULL, invoice_number VARCHAR(100) NULL, invoice_date DATE NOT NULL,
- po_no VARCHAR(100) NULL, status ENUM('Draft','Ready','Queued','Processing','Invoiced','Error','Uncertain Result') NOT NULL DEFAULT 'Draft',
+ po_no VARCHAR(100) NULL, memo TEXT NULL, status ENUM('Draft','Ready','Queued','Processing','Invoiced','Error','Uncertain Result') NOT NULL DEFAULT 'Draft',
  qb_invoice_no VARCHAR(100) NULL, qb_txn_id VARCHAR(100) NULL, submitted_by BIGINT UNSIGNED NULL, submitted_at DATETIME NULL,
  created_by BIGINT UNSIGNED NULL, updated_by BIGINT UNSIGNED NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
  UNIQUE KEY uq_invoices_invoice_number(invoice_number),
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS invoices (
 ) ENGINE=InnoDB;
 CREATE TABLE IF NOT EXISTS invoice_items (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, invoice_id BIGINT UNSIGNED NOT NULL, withdrawal_item_id BIGINT UNSIGNED NULL, source_type ENUM('WITHDRAWAL','ADDITIONAL') NOT NULL DEFAULT 'WITHDRAWAL',
- product_id BIGINT UNSIGNED NULL, site_id BIGINT UNSIGNED NULL, product_name VARCHAR(255) NOT NULL, quantity DECIMAL(12,3) NOT NULL,
+ product_id BIGINT UNSIGNED NULL, site_id BIGINT UNSIGNED NULL, product_name VARCHAR(255) NOT NULL, quantity BIGINT UNSIGNED NOT NULL,
  lot_number VARCHAR(100) NULL, item_code VARCHAR(100) NULL, description VARCHAR(255) NULL, u_m VARCHAR(40) NULL, price_each DECIMAL(12,2) NOT NULL DEFAULT 0,
  amount DECIMAL(14,2) NOT NULL DEFAULT 0, tax_code VARCHAR(40) NOT NULL DEFAULT 'Non', expiration_date DATE NULL,
  created_by BIGINT UNSIGNED NULL, updated_by BIGINT UNSIGNED NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,

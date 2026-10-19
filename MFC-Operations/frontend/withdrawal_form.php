@@ -457,7 +457,7 @@ foreach ($values as $item) {
                                     type="number"
                                     min="1"
                                     step="1"
-                                    value="<?= e($formatDecimal($it['quantity'] ?? '')) ?>"
+                                    value="<?= e($it['quantity'] ?? '') ?>"
                                     placeholder="0"
                                     inputmode="numeric"
                                     aria-label="Quantity for line <?= $i + 1 ?>">
